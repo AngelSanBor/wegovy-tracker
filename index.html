@@ -1,412 +1,449 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Wegovy" />
-  <meta name="theme-color" content="#0a0e1a" />
-  <title>Wegovy Tracker</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon.png" />
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body, #root { height: 100%; }
-    body { background: #0a0e1a; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
-    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
-    ::-webkit-scrollbar { width: 3px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Wegovy"/>
+<meta name="theme-color" content="#0a0e1a"/>
+<title>Wegovy Tracker</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon.png"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0e1a;font-family:Georgia,'Times New Roman',serif;color:#e8f4f8;-webkit-tap-highlight-color:transparent}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6);cursor:pointer}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+
+#hdr{background:rgba(255,255,255,.03);border-bottom:1px solid rgba(100,200,255,.1);padding:18px 20px 14px;text-align:center;padding-top:calc(18px + env(safe-area-inset-top))}
+#hdr h1{font-size:22px;font-weight:bold;letter-spacing:2px;color:#7dd3fc;text-transform:uppercase}
+#hdr p{font-size:11px;color:#64748b;margin-top:4px;letter-spacing:3px;text-transform:uppercase}
+
+#tabs{display:flex;border-bottom:1px solid rgba(100,200,255,.1);background:rgba(0,0,0,.2)}
+.tab-btn{flex:1;padding:10px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#4a6680;cursor:pointer;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-family:Georgia,serif;line-height:1.5}
+.tab-btn.active{background:rgba(125,211,252,.1);border-bottom:2px solid #7dd3fc;color:#7dd3fc}
+
+#content{padding:16px;max-width:600px;margin:0 auto;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(100,200,255,.1);border-radius:12px;padding:16px;margin-bottom:14px}
+.card-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#7dd3fc;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:rgba(255,255,255,.04);border:1px solid rgba(100,200,255,.08);border-radius:10px;padding:14px 12px;text-align:center}
+.stat-val{font-size:28px;font-weight:bold;color:#7dd3fc;line-height:1}
+.stat-lbl{font-size:10px;color:#4a6680;letter-spacing:1.5px;text-transform:uppercase;margin-top:6px}
+
+label{font-size:11px;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:5px}
+input,select{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(100,200,255,.15);border-radius:8px;padding:10px 12px;color:#e8f4f8;font-size:16px;font-family:Georgia,serif;outline:none;box-sizing:border-box;margin-bottom:10px}
+select{background:#0f1829}
+.btn-primary{background:linear-gradient(135deg,#1e4a7a,#0f3460);border:1px solid rgba(125,211,252,.3);border-radius:8px;color:#7dd3fc;padding:11px 20px;cursor:pointer;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;width:100%;font-family:Georgia,serif;margin-top:4px}
+.btn-del{background:transparent;border:1px solid rgba(248,113,113,.3);border-radius:6px;color:#f87171;padding:4px 10px;cursor:pointer;font-size:11px;font-family:Georgia,serif}
+.btn-sev{flex:1;padding:9px;border-radius:8px;cursor:pointer;font-size:12px;font-family:Georgia,serif;border:1px solid rgba(100,200,255,.1);background:rgba(255,255,255,.03);color:#4a6680}
+.btn-sev.active-1{background:rgba(52,211,153,.12);border-color:#34d399;color:#34d399}
+.btn-sev.active-2{background:rgba(251,191,36,.12);border-color:#fbbf24;color:#fbbf24}
+.btn-sev.active-3{background:rgba(248,113,113,.12);border-color:#f87171;color:#f87171}
+
+.row-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:6px;border:1px solid rgba(100,200,255,.06)}
+.row-item-col{flex-direction:column;align-items:flex-start}
+.tag{border-radius:20px;padding:2px 10px;font-size:12px}
+.pill{display:inline-block;border-radius:12px;padding:3px 10px;font-size:11px;margin-right:5px;margin-bottom:4px}
+.empty{text-align:center;color:#334155;padding:20px;font-size:13px}
+
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.check-item{background:rgba(255,255,255,.03);border:1px solid rgba(100,200,255,.1);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:11px;color:#4a6680;display:flex;align-items:center;gap:6px;user-select:none}
+.check-item.checked{background:rgba(125,211,252,.12);border-color:rgba(125,211,252,.4);color:#7dd3fc}
+
+#toast{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#14532d;border:1px solid #22c55e;border-radius:8px;padding:10px 20px;color:#86efac;font-size:13px;z-index:1000;white-space:nowrap}
+
+.dose-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:4px}
+.dose-dot{width:8px;height:8px;border-radius:50%}
+
+.next-pill{border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.imc-card{border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.imc-bar{position:relative;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:12px}
+.imc-seg{position:absolute;height:100%;opacity:.5}
+.imc-dot{position:absolute;top:-3px;width:12px;height:12px;border-radius:50%;border:2px solid #0f1829;transform:translateX(-50%)}
+
+.sev-row{display:flex;gap:8px;margin-bottom:10px}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-    }
-  </script>
-  <script type="text/babel">
-    const { useState, useEffect, useCallback } = React;
+<div id="hdr">
+  <h1>&#11041; Wegovy Tracker</h1>
+  <p>Control de tratamiento &middot; Semaglutida</p>
+</div>
+<div id="tabs">
+  <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">&#128202;<br>Resumen</button>
+  <button class="tab-btn" data-tab="tomas" onclick="switchTab('tomas')">&#128137;<br>Tomas</button>
+  <button class="tab-btn" data-tab="peso" onclick="switchTab('peso')">&#9878;&#65039;<br>Peso</button>
+  <button class="tab-btn" data-tab="sintomas" onclick="switchTab('sintomas')">&#129322;<br>Sintomas</button>
+</div>
+<div id="content"></div>
+<div id="toast"></div>
 
-    const STORAGE_KEY   = "wegovy:tracker-v3";
-    const DOSIS_OPTIONS = ["0.25 mg","0.5 mg","1.0 mg","1.7 mg","2.4 mg"];
-    const DOSIS_COLORS  = {"0.25 mg":"#60a5fa","0.5 mg":"#34d399","1.0 mg":"#fbbf24","1.7 mg":"#f97316","2.4 mg":"#a78bfa"};
-    const EFECTOS       = ["Nauseas","Vomitos","Diarrea","Estrenimiento","Dolor abdominal","Fatiga","Mareos","Cefalea","Reflujo","Perdida de apetito","Otros"];
-    const SEV_L         = {1:"Leve",2:"Moderado",3:"Severo"};
-    const SEV_C         = {1:"#34d399",2:"#fbbf24",3:"#f87171"};
-    const DEFAULT       = { injections:[], weights:[], sideEffects:[], startDate:null, startWeight:109, height:185 };
+<script>
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
-    const todayStr  = () => new Date().toISOString().split("T")[0];
-    const fmtDate   = d => { if(!d)return""; const[y,m,day]=d.split("-"); return day+"/"+m+"/"+y; };
-    const addDays   = (ds,n) => { const d=new Date(ds); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; };
-    const daysDiff  = (a,b) => Math.round((new Date(b)-new Date(a))/86400000);
-    const calcIMC   = (w,h) => (!w||!h)?null:w/Math.pow(h/100,2);
-    const pesoIdeal = h => h-100-(h-150)/4;
-    const imcCat    = v => {
-      if(v<18.5) return {label:"Bajo peso",    color:"#60a5fa"};
-      if(v<25)   return {label:"Normopeso",    color:"#34d399"};
-      if(v<30)   return {label:"Sobrepeso",    color:"#fbbf24"};
-      if(v<35)   return {label:"Obesidad I",   color:"#f97316"};
-      if(v<40)   return {label:"Obesidad II",  color:"#f87171"};
-      return           {label:"Ob. morbida",   color:"#dc2626"};
-    };
-    const loadData = () => { try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null;}catch(e){return null;} };
-    const saveLS   = d  => { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(e){} };
+// ── Data ──
+const KEY = 'wegovy:v4';
+const DOSIS = ['0.25 mg','0.5 mg','1.0 mg','1.7 mg','2.4 mg'];
+const DCOL  = {'0.25 mg':'#60a5fa','0.5 mg':'#34d399','1.0 mg':'#fbbf24','1.7 mg':'#f97316','2.4 mg':'#a78bfa'};
+const EFX   = ['Nauseas','Vomitos','Diarrea','Estrenimiento','Dolor abdominal','Fatiga','Mareos','Cefalea','Reflujo','Sin apetito','Otros'];
+const SL    = {1:'Leve',2:'Moderado',3:'Severo'};
+const SC    = {1:'#34d399',2:'#fbbf24',3:'#f87171'};
 
-    function LineChart({ data, startWeight }) {
-      if (!data || data.length < 2) return null;
-      const W=300, H=150, PL=36, PR=8, PT=8, PB=26;
-      const iW=W-PL-PR, iH=H-PT-PB;
-      const vals=data.map(d=>d.peso);
-      const minV=Math.floor(Math.min(...vals))-1;
-      const maxV=Math.ceil(Math.max(...vals))+1;
-      const xS=i=>PL+(i/(data.length-1))*iW;
-      const yS=v=>PT+(1-(v-minV)/(maxV-minV))*iH;
-      const pts=data.map((d,i)=>xS(i).toFixed(1)+","+yS(d.peso).toFixed(1)).join(" ");
-      const ticks=[minV,Math.round((minV+maxV)/2),maxV];
-      const xlabs=data.length<=5?data.map((_,i)=>i):[0,Math.floor((data.length-1)/2),data.length-1];
-      return (
-        <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",display:"block",overflow:"visible"}}>
-          {ticks.map(t=>(
-            <line key={t} x1={PL} y1={yS(t).toFixed(1)} x2={W-PR} y2={yS(t).toFixed(1)} stroke="rgba(100,200,255,0.08)" strokeDasharray="3 3"/>
-          ))}
-          {startWeight&&startWeight>=minV&&startWeight<=maxV&&(
-            <line x1={PL} y1={yS(startWeight).toFixed(1)} x2={W-PR} y2={yS(startWeight).toFixed(1)} stroke="#f87171" strokeDasharray="5 3" strokeOpacity="0.4"/>
-          )}
-          <polyline points={pts} fill="none" stroke="#7dd3fc" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
-          {data.map((d,i)=>(
-            <circle key={i} cx={xS(i).toFixed(1)} cy={yS(d.peso).toFixed(1)} r="4" fill="#7dd3fc"/>
-          ))}
-          {ticks.map(t=>(
-            <text key={t} x={PL-4} y={(yS(t)+3.5).toFixed(1)} textAnchor="end" fontSize="9" fill="#4a6680">{t}</text>
-          ))}
-          {xlabs.map(i=>(
-            <text key={i} x={xS(i).toFixed(1)} y={H-4} textAnchor="middle" fontSize="9" fill="#4a6680">{data[i].fecha}</text>
-          ))}
-        </svg>
-      );
-    }
+let state = (()=>{ try{ const r=localStorage.getItem(KEY); return r?JSON.parse(r):null; }catch(e){return null;} })()
+  || { injections:[], weights:[], sideEffects:[], startDate:null, startWeight:109, height:185 };
 
-    const S = {
-      app:   {background:"linear-gradient(135deg,#0a0e1a 0%,#0f1829 50%,#0a1520 100%)",minHeight:"100vh",fontFamily:"Georgia,'Times New Roman',serif",color:"#e8f4f8"},
-      hdr:   {background:"rgba(255,255,255,0.03)",borderBottom:"1px solid rgba(100,200,255,0.1)",padding:"18px 20px 14px",textAlign:"center",paddingTop:"calc(18px + env(safe-area-inset-top))"},
-      logo:  {fontSize:"22px",fontWeight:"bold",letterSpacing:"2px",color:"#7dd3fc",margin:0,textTransform:"uppercase"},
-      sub:   {fontSize:"11px",color:"#64748b",margin:"4px 0 0",letterSpacing:"3px",textTransform:"uppercase"},
-      tabs:  {display:"flex",borderBottom:"1px solid rgba(100,200,255,0.1)",background:"rgba(0,0,0,0.2)"},
-      tab:   a=>({flex:1,padding:"10px 4px",background:a?"rgba(125,211,252,0.1)":"transparent",border:"none",borderBottom:a?"2px solid #7dd3fc":"2px solid transparent",color:a?"#7dd3fc":"#4a6680",cursor:"pointer",fontSize:"10px",letterSpacing:"1px",textTransform:"uppercase",fontFamily:"Georgia,serif",lineHeight:"1.4"}),
-      cnt:   {padding:"16px",maxWidth:"600px",margin:"0 auto",paddingBottom:"calc(20px + env(safe-area-inset-bottom))"},
-      card:  {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(100,200,255,0.1)",borderRadius:"12px",padding:"16px",marginBottom:"14px"},
-      ct:    {fontSize:"11px",letterSpacing:"2px",textTransform:"uppercase",color:"#7dd3fc",marginBottom:"14px"},
-      g2:    {display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"14px"},
-      sc:    {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(100,200,255,0.08)",borderRadius:"10px",padding:"14px 12px",textAlign:"center"},
-      sv:    {fontSize:"28px",fontWeight:"bold",color:"#7dd3fc",lineHeight:1},
-      sl:    {fontSize:"10px",color:"#4a6680",letterSpacing:"1.5px",textTransform:"uppercase",marginTop:"6px"},
-      inp:   {width:"100%",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(100,200,255,0.15)",borderRadius:"8px",padding:"10px 12px",color:"#e8f4f8",fontSize:"16px",fontFamily:"Georgia,serif",outline:"none",boxSizing:"border-box",marginBottom:"10px"},
-      sel:   {width:"100%",background:"#0f1829",border:"1px solid rgba(100,200,255,0.15)",borderRadius:"8px",padding:"10px 12px",color:"#e8f4f8",fontSize:"16px",fontFamily:"Georgia,serif",outline:"none",boxSizing:"border-box",marginBottom:"10px"},
-      lbl:   {fontSize:"11px",color:"#64748b",letterSpacing:"1px",textTransform:"uppercase",display:"block",marginBottom:"5px"},
-      btn:   {background:"linear-gradient(135deg,#1e4a7a,#0f3460)",border:"1px solid rgba(125,211,252,0.3)",borderRadius:"8px",color:"#7dd3fc",padding:"11px 20px",cursor:"pointer",fontSize:"12px",letterSpacing:"1.5px",textTransform:"uppercase",width:"100%",fontFamily:"Georgia,serif"},
-      bdel:  {background:"transparent",border:"1px solid rgba(248,113,113,0.3)",borderRadius:"6px",color:"#f87171",padding:"4px 10px",cursor:"pointer",fontSize:"11px",fontFamily:"Georgia,serif"},
-      row:   {display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"rgba(255,255,255,0.03)",borderRadius:"8px",marginBottom:"6px",border:"1px solid rgba(100,200,255,0.06)"},
-      tag:   c=>({background:c+"22",border:"1px solid "+c+"55",borderRadius:"20px",padding:"2px 10px",fontSize:"12px",color:c}),
-      pill:  c=>({display:"inline-block",background:c+"22",border:"1px solid "+c+"44",borderRadius:"12px",padding:"3px 10px",fontSize:"11px",color:c,marginRight:"5px",marginBottom:"4px"}),
-      toast: {position:"fixed",bottom:"24px",left:"50%",transform:"translateX(-50%)",background:"#14532d",border:"1px solid #22c55e",borderRadius:"8px",padding:"10px 20px",color:"#86efac",fontSize:"13px",zIndex:1000,whiteSpace:"nowrap"},
-      ckg:   {display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",marginBottom:"10px"},
-      cki:   c=>({background:c?"rgba(125,211,252,0.12)":"rgba(255,255,255,0.03)",border:"1px solid "+(c?"rgba(125,211,252,0.4)":"rgba(100,200,255,0.1)"),borderRadius:"8px",padding:"8px 10px",cursor:"pointer",fontSize:"12px",color:c?"#7dd3fc":"#4a6680",display:"flex",alignItems:"center",gap:"6px",userSelect:"none"}),
-    };
+let activeTab = 'dashboard';
+let forms = { dose:'0.25 mg', injDate:today(), injNotes:'', wDate:today(), wKg:'', seDate:today(), seEfx:[], seSev:1, seNotes:'' };
 
-    function App() {
-      const [data,  setData]  = useState(DEFAULT);
-      const [tab,   setTab]   = useState("dashboard");
-      const [toast, setToast] = useState(null);
-      const [iF,    setIF]    = useState({date:todayStr(),dose:"0.25 mg",notes:""});
-      const [wF,    setWF]    = useState({date:todayStr(),weight:""});
-      const [sF,    setSF]    = useState({date:todayStr(),effects:[],severity:1,notes:""});
+function today(){ return new Date().toISOString().split('T')[0]; }
+function fmt(d){ if(!d)return''; const[y,m,day]=d.split('-'); return day+'/'+m+'/'+y; }
+function addD(ds,n){ const d=new Date(ds); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; }
+function diff(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+function imc(w,h){ return(!w||!h)?null:+(w/Math.pow(h/100,2)).toFixed(1); }
+function ideal(h){ return +(h-100-(h-150)/4).toFixed(1); }
+function imcCat(v){
+  if(v<18.5) return{l:'Bajo peso',c:'#60a5fa'};
+  if(v<25)   return{l:'Normopeso',c:'#34d399'};
+  if(v<30)   return{l:'Sobrepeso',c:'#fbbf24'};
+  if(v<35)   return{l:'Obesidad I',c:'#f97316'};
+  if(v<40)   return{l:'Obesidad II',c:'#f87171'};
+  return           {l:'Ob. morbida',c:'#dc2626'};
+}
 
-      useEffect(()=>{ const s=loadData(); if(s) setData(s); },[]);
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
+  showToast('Guardado');
+}
 
-      const t2   = msg => { setToast(msg); setTimeout(()=>setToast(null),2000); };
-      const save = useCallback(nd => { setData(nd); saveLS(nd); t2("Guardado"); },[]);
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent='✓ '+msg; t.style.display='block';
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.style.display='none',2000);
+}
 
-      const addInj = () => {
-        if(!iF.date||!iF.dose) return;
-        const injs=[...data.injections,{id:Date.now(),...iF}].sort((a,b)=>a.date.localeCompare(b.date));
-        save({...data,injections:injs,startDate:data.startDate||iF.date});
-        setIF(p=>({...p,notes:"",date:todayStr()}));
-      };
-      const addW = () => {
-        const w=parseFloat(wF.weight);
-        if(!wF.date||isNaN(w)||w<30||w>300) return;
-        const ws=[...data.weights.filter(x=>x.date!==wF.date),{id:Date.now(),date:wF.date,weight:w}].sort((a,b)=>a.date.localeCompare(b.date));
-        save({...data,weights:ws,startWeight:data.startWeight!==null?data.startWeight:w});
-        setWF({date:todayStr(),weight:""});
-      };
-      const addSE = () => {
-        if(!sF.date||sF.effects.length===0) return;
-        const ses=[...data.sideEffects,{id:Date.now(),...sF}].sort((a,b)=>a.date.localeCompare(b.date));
-        save({...data,sideEffects:ses});
-        setSF({date:todayStr(),effects:[],severity:1,notes:""});
-      };
-      const del   = (t,id) => save({...data,[t]:data[t].filter(x=>x.id!==id)});
-      const togEf = ef    => setSF(p=>({...p,effects:p.effects.includes(ef)?p.effects.filter(e=>e!==ef):[...p.effects,ef]}));
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  render();
+}
 
-      const sw      = [...data.weights].sort((a,b)=>a.date.localeCompare(b.date));
-      const lastW   = sw.length>0?sw[sw.length-1].weight:null;
-      const wLoss   = lastW!==null&&data.startWeight!==null?lastW-data.startWeight:null;
-      const si      = [...data.injections].sort((a,b)=>a.date.localeCompare(b.date));
-      const lastInj = si.length>0?si[si.length-1]:null;
-      const nextD   = lastInj?addDays(lastInj.date,7):null;
-      const dNext   = nextD?daysDiff(todayStr(),nextD):null;
-      const weeks   = data.startDate?Math.max(0,Math.floor(daysDiff(data.startDate,todayStr())/7)):0;
-      const imc     = calcIMC(lastW,data.height);
-      const imcS    = calcIMC(data.startWeight,data.height);
-      const imcNow  = imc?imcCat(imc):null;
-      const ideal   = data.height?pesoIdeal(data.height):null;
-      const kgToId  = lastW&&ideal?lastW-ideal:null;
-      const chartD  = sw.map(w=>({fecha:w.date.slice(5).replace("-","/"),peso:w.weight}));
+// ── SVG Chart ──
+function svgChart(data, startW){
+  if(!data||data.length<2) return '';
+  const W=300,H=148,PL=36,PR=8,PT=8,PB=24;
+  const iW=W-PL-PR, iH=H-PT-PB;
+  const vals=data.map(d=>d.p);
+  const minV=Math.floor(Math.min(...vals))-1;
+  const maxV=Math.ceil(Math.max(...vals))+1;
+  const xS=i=>(PL+(i/(data.length-1))*iW).toFixed(1);
+  const yS=v=>(PT+(1-(v-minV)/(maxV-minV))*iH).toFixed(1);
+  const pts=data.map((d,i)=>xS(i)+','+yS(d.p)).join(' ');
+  const ticks=[minV,Math.round((minV+maxV)/2),maxV];
+  const xl=data.length<=5?data.map((_,i)=>i):[0,Math.floor((data.length-1)/2),data.length-1];
+  let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;overflow:visible">`;
+  ticks.forEach(t=>{ s+=`<line x1="${PL}" y1="${yS(t)}" x2="${W-PR}" y2="${yS(t)}" stroke="rgba(100,200,255,.08)" stroke-dasharray="3 3"/>`; });
+  if(startW&&startW>=minV&&startW<=maxV)
+    s+=`<line x1="${PL}" y1="${yS(startW)}" x2="${W-PR}" y2="${yS(startW)}" stroke="#f87171" stroke-dasharray="5 3" stroke-opacity=".4"/>`;
+  s+=`<polyline points="${pts}" fill="none" stroke="#7dd3fc" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  data.forEach((d,i)=>{ s+=`<circle cx="${xS(i)}" cy="${yS(d.p)}" r="4" fill="#7dd3fc"/>`; });
+  ticks.forEach(t=>{ s+=`<text x="${PL-4}" y="${(+yS(t)+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#4a6680">${t}</text>`; });
+  xl.forEach(i=>{ s+=`<text x="${xS(i)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#4a6680">${data[i].f}</text>`; });
+  s+='</svg>'; return s;
+}
 
-      return (
-        <div style={S.app}>
-          <div style={S.hdr}>
-            <p style={S.logo}>Wegovy Tracker</p>
-            <p style={S.sub}>Control de tratamiento · Semaglutida</p>
-          </div>
+// ── Stats ──
+function getStats(){
+  const sw=[...state.weights].sort((a,b)=>a.date.localeCompare(b.date));
+  const lastW=sw.length?sw[sw.length-1].weight:null;
+  const wLoss=lastW!==null&&state.startWeight!==null?+(lastW-state.startWeight).toFixed(1):null;
+  const si=[...state.injections].sort((a,b)=>a.date.localeCompare(b.date));
+  const lastI=si.length?si[si.length-1]:null;
+  const nextD=lastI?addD(lastI.date,7):null;
+  const dNext=nextD?diff(today(),nextD):null;
+  const wks=state.startDate?Math.max(0,Math.floor(diff(state.startDate,today())/7)):0;
+  const imcVal=imc(lastW,state.height);
+  const imcStart=imc(state.startWeight,state.height);
+  const imcInfo=imcVal?imcCat(imcVal):null;
+  const chartData=sw.map(w=>({f:w.date.slice(5).replace('-','/'),p:w.weight}));
+  return {sw,lastW,wLoss,lastI,nextD,dNext,wks,imcVal,imcStart,imcInfo,chartData};
+}
 
-          <div style={S.tabs}>
-            {[["dashboard","📊","Resumen"],["tomas","💉","Tomas"],["peso","⚖️","Peso"],["sintomas","🩺","Sintomas"]].map(([id,ic,lbl])=>(
-              <button key={id} style={S.tab(tab===id)} onClick={()=>setTab(id)}>{ic}<br/>{lbl}</button>
-            ))}
-          </div>
+// ── Render Dashboard ──
+function renderDashboard(){
+  const {lastW,wLoss,lastI,nextD,dNext,wks,imcVal,imcStart,imcInfo,chartData} = getStats();
+  let h='';
 
-          <div style={S.cnt}>
+  // Next dose
+  if(nextD){
+    const bc=dNext<=1?'rgba(248,113,113,.1)':dNext<=3?'rgba(251,191,36,.1)':'rgba(52,211,153,.08)';
+    const br=dNext<=1?'rgba(248,113,113,.4)':dNext<=3?'rgba(251,191,36,.3)':'rgba(52,211,153,.2)';
+    const dc=dNext<=1?'#f87171':dNext<=3?'#fbbf24':'#34d399';
+    const dv=dNext===0?'HOY':dNext<0?'VENCIDA':dNext+'d';
+    h+=`<div class="next-pill" style="background:${bc};border:1px solid ${br}">
+      <div>
+        <div style="font-size:11px;color:#64748b;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Proxima dosis</div>
+        <div style="font-size:15px;color:#e8f4f8">${fmt(nextD)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:26px;font-weight:bold;line-height:1;color:${dc}">${dv}</div>
+        ${dNext!==0?'<div style="font-size:10px;color:#4a6680">para inyeccion</div>':''}
+      </div>
+    </div>`;
+  } else {
+    h+=`<div class="card" style="text-align:center;padding:20px">
+      <div style="font-size:32px;margin-bottom:8px">&#128137;</div>
+      <div style="font-size:13px;color:#4a6680">Registra tu primera toma para comenzar</div>
+    </div>`;
+  }
 
-            {tab==="dashboard" && <>
-              {nextD ? (
-                <div style={{background:dNext<=1?"rgba(248,113,113,0.1)":dNext<=3?"rgba(251,191,36,0.1)":"rgba(52,211,153,0.08)",border:"1px solid "+(dNext<=1?"rgba(248,113,113,0.4)":dNext<=3?"rgba(251,191,36,0.3)":"rgba(52,211,153,0.2)"),borderRadius:"10px",padding:"12px 16px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:"11px",color:"#64748b",letterSpacing:"1px",textTransform:"uppercase",marginBottom:"3px"}}>Proxima dosis</div>
-                    <div style={{fontSize:"15px",color:"#e8f4f8"}}>{fmtDate(nextD)}</div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:"26px",fontWeight:"bold",lineHeight:1,color:dNext<=1?"#f87171":dNext<=3?"#fbbf24":"#34d399"}}>{dNext===0?"HOY":dNext<0?"VENCIDA":dNext+"d"}</div>
-                    {dNext!==0&&<div style={{fontSize:"10px",color:"#4a6680"}}>para inyeccion</div>}
-                  </div>
-                </div>
-              ) : (
-                <div style={{...S.card,textAlign:"center",padding:"20px"}}>
-                  <div style={{fontSize:"32px",marginBottom:"8px"}}>💉</div>
-                  <div style={{fontSize:"13px",color:"#4a6680"}}>Registra tu primera toma para comenzar</div>
-                </div>
-              )}
+  // Stats
+  const wc=wLoss!==null&&wLoss<0?'#34d399':'#f87171';
+  const wv=wLoss!==null?(wLoss>0?'+':'')+wLoss+' kg':'—';
+  h+=`<div class="grid2">
+    <div class="stat-card"><div class="stat-val">${wks}</div><div class="stat-lbl">Semanas</div></div>
+    <div class="stat-card"><div class="stat-val">${state.injections.length}</div><div class="stat-lbl">Tomas</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:22px;color:${wc}">${wv}</div><div class="stat-lbl">Variacion</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:17px">${lastI?lastI.dose:'—'}</div><div class="stat-lbl">Ultima dosis</div></div>
+  </div>`;
 
-              <div style={S.g2}>
-                <div style={S.sc}><div style={S.sv}>{weeks}</div><div style={S.sl}>Semanas</div></div>
-                <div style={S.sc}><div style={S.sv}>{data.injections.length}</div><div style={S.sl}>Tomas</div></div>
-                <div style={S.sc}>
-                  <div style={{...S.sv,fontSize:"22px",color:wLoss!==null&&wLoss<0?"#34d399":"#f87171"}}>
-                    {wLoss!==null?(wLoss>0?"+":"")+wLoss.toFixed(1)+" kg":"—"}
-                  </div>
-                  <div style={S.sl}>Variacion</div>
-                </div>
-                <div style={S.sc}><div style={{...S.sv,fontSize:"17px"}}>{lastInj?lastInj.dose:"—"}</div><div style={S.sl}>Ultima dosis</div></div>
-              </div>
-
-              {imc&&imcNow&&(
-                <div style={{background:imcNow.color+"10",border:"1px solid "+imcNow.color+"35",borderRadius:"12px",padding:"14px 16px",marginBottom:"14px"}}>
-                  <div style={{fontSize:"11px",letterSpacing:"2px",textTransform:"uppercase",color:"#64748b",marginBottom:"10px"}}>Indice de masa corporal</div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div>
-                      <div style={{fontSize:"38px",fontWeight:"bold",color:imcNow.color,lineHeight:1}}>{imc.toFixed(1)}</div>
-                      <div style={{fontSize:"13px",color:imcNow.color,marginTop:"4px"}}>{imcNow.label}</div>
-                      {imcS&&<div style={{fontSize:"11px",color:"#4a6680",marginTop:"3px"}}>inicio {imcS.toFixed(1)} · D {(imc-imcS).toFixed(1)}</div>}
-                    </div>
-                    <div style={{textAlign:"right",fontSize:"12px",color:"#4a6680"}}>
-                      <div>Talla: {data.height} cm</div>
-                      <div style={{margin:"3px 0"}}>Peso: {lastW} kg</div>
-                      {kgToId!==null&&<div style={{color:kgToId<=5?"#34d399":"#fbbf24"}}>Objetivo: -{kgToId.toFixed(1)} kg</div>}
-                    </div>
-                  </div>
-                  <div style={{marginTop:"12px"}}>
-                    <div style={{position:"relative",height:"6px",background:"rgba(255,255,255,0.06)",borderRadius:"3px",overflow:"hidden"}}>
-                      {[["#60a5fa",0,18.5],["#34d399",18.5,25],["#fbbf24",25,30],["#f97316",30,35],["#f87171",35,40],["#dc2626",40,55]].map(([c,from,to])=>(
-                        <div key={from} style={{position:"absolute",left:((from-10)/45*100)+"%",width:((to-from)/45*100)+"%",height:"100%",background:c,opacity:0.5}}/>
-                      ))}
-                      <div style={{position:"absolute",left:Math.min(Math.max((imc-10)/45*100,1),99)+"%",top:"-3px",width:"12px",height:"12px",background:imcNow.color,borderRadius:"50%",border:"2px solid #0f1829",transform:"translateX(-50%)"}}/>
-                    </div>
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
-                      {["18.5","25","30","35","40"].map(v=><span key={v} style={{fontSize:"9px",color:"#334155"}}>{v}</span>)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {chartD.length>=2&&(
-                <div style={S.card}>
-                  <div style={S.ct}>Evolucion del peso</div>
-                  <LineChart data={chartD} startWeight={data.startWeight}/>
-                </div>
-              )}
-
-              <div style={S.card}>
-                <div style={S.ct}>Protocolo de escalada</div>
-                {DOSIS_OPTIONS.map((d,i)=>{
-                  const active=lastInj&&lastInj.dose===d;
-                  const past=lastInj&&DOSIS_OPTIONS.indexOf(lastInj.dose)>i;
-                  const n=data.injections.filter(x=>x.dose===d).length;
-                  return(
-                    <div key={d} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 10px",borderRadius:"8px",marginBottom:"4px",background:active?DOSIS_COLORS[d]+"15":"transparent",border:"1px solid "+(active?DOSIS_COLORS[d]+"40":"transparent")}}>
-                      <div style={{width:"8px",height:"8px",borderRadius:"50%",background:past||active?DOSIS_COLORS[d]:"#1e293b",border:"2px solid "+DOSIS_COLORS[d]}}/>
-                      <div style={{flex:1,fontSize:"13px",color:active?"#e8f4f8":past?"#7dd3fc":"#334155"}}>{d}</div>
-                      <div style={{fontSize:"11px",color:"#4a6680"}}>{n>0?n+" toma"+(n>1?"s":""):""}{active&&<span style={{color:DOSIS_COLORS[d],marginLeft:"6px"}}> actual</span>}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>}
-
-            {tab==="tomas" && <>
-              <div style={S.card}>
-                <div style={S.ct}>Registrar toma</div>
-                <label style={S.lbl}>Fecha</label>
-                <input type="date" value={iF.date} onChange={e=>setIF(p=>({...p,date:e.target.value}))} style={S.inp}/>
-                <label style={S.lbl}>Dosis</label>
-                <select value={iF.dose} onChange={e=>setIF(p=>({...p,dose:e.target.value}))} style={S.sel}>
-                  {DOSIS_OPTIONS.map(d=><option key={d} value={d}>{d}</option>)}
-                </select>
-                <label style={S.lbl}>Notas (opcional)</label>
-                <input type="text" value={iF.notes} placeholder="Zona, observaciones..." onChange={e=>setIF(p=>({...p,notes:e.target.value}))} style={S.inp}/>
-                <button style={S.btn} onClick={addInj}>+ Registrar toma</button>
-              </div>
-              <div style={S.card}>
-                <div style={S.ct}>Historial ({data.injections.length})</div>
-                {data.injections.length===0&&<div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aun</div>}
-                {[...data.injections].reverse().map(inj=>(
-                  <div key={inj.id} style={S.row}>
-                    <div>
-                      <div style={{fontSize:"13px",color:"#e8f4f8",marginBottom:"2px"}}>{fmtDate(inj.date)}</div>
-                      {inj.notes&&<div style={{fontSize:"11px",color:"#4a6680"}}>{inj.notes}</div>}
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                      <span style={S.tag(DOSIS_COLORS[inj.dose]||"#7dd3fc")}>{inj.dose}</span>
-                      <button style={S.bdel} onClick={()=>del("injections",inj.id)}>X</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>}
-
-            {tab==="peso" && <>
-              <div style={S.card}>
-                <div style={S.ct}>Registrar peso</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
-                  <div>
-                    <label style={S.lbl}>Fecha</label>
-                    <input type="date" value={wF.date} onChange={e=>setWF(p=>({...p,date:e.target.value}))} style={S.inp}/>
-                  </div>
-                  <div>
-                    <label style={S.lbl}>Talla (cm)</label>
-                    <input type="number" step="1" min="100" max="250" value={data.height||""} placeholder="185" onChange={e=>save({...data,height:parseFloat(e.target.value)||null})} style={S.inp}/>
-                  </div>
-                </div>
-                <label style={S.lbl}>Peso (kg)</label>
-                <input type="number" step="0.1" min="30" max="300" value={wF.weight} placeholder="ej: 92.5" onChange={e=>setWF(p=>({...p,weight:e.target.value}))} style={S.inp}/>
-                <button style={S.btn} onClick={addW}>+ Registrar peso</button>
-              </div>
-              {chartD.length>=2&&(
-                <div style={S.card}>
-                  <div style={S.ct}>Curva de peso</div>
-                  {wLoss!==null&&(
-                    <div style={{display:"flex",gap:"16px",flexWrap:"wrap",marginBottom:"14px"}}>
-                      <span style={{fontSize:"12px",color:"#4a6680"}}>Inicio: <span style={{color:"#e8f4f8"}}>{data.startWeight} kg</span></span>
-                      <span style={{fontSize:"12px",color:"#4a6680"}}>Actual: <span style={{color:"#e8f4f8"}}>{lastW} kg</span></span>
-                      <span style={{fontSize:"12px",fontWeight:"bold",color:wLoss<0?"#34d399":"#f87171"}}>{wLoss>0?"+":""}{wLoss.toFixed(1)} kg ({((wLoss/data.startWeight)*100).toFixed(1)}%)</span>
-                    </div>
-                  )}
-                  <LineChart data={chartD} startWeight={data.startWeight}/>
-                </div>
-              )}
-              <div style={S.card}>
-                <div style={S.ct}>Historial ({data.weights.length})</div>
-                {data.weights.length===0&&<div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aun</div>}
-                {[...sw].reverse().map((w,i,arr)=>{
-                  const prev=arr[i+1];
-                  const diff=prev?w.weight-prev.weight:null;
-                  const wi=calcIMC(w.weight,data.height);
-                  const wcat=wi?imcCat(wi):null;
-                  return(
-                    <div key={w.id} style={S.row}>
-                      <div>
-                        <div style={{fontSize:"13px",color:"#e8f4f8",marginBottom:"2px"}}>{fmtDate(w.date)}</div>
-                        {diff!==null&&<div style={{fontSize:"11px",color:diff<0?"#34d399":"#f87171"}}>{diff>0?"+":""}{diff.toFixed(1)} kg</div>}
-                        {wcat&&<div style={{fontSize:"11px",color:wcat.color}}>IMC {wi.toFixed(1)} - {wcat.label}</div>}
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                        <span style={{fontSize:"18px",color:"#7dd3fc",fontWeight:"bold"}}>{w.weight} kg</span>
-                        <button style={S.bdel} onClick={()=>del("weights",w.id)}>X</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>}
-
-            {tab==="sintomas" && <>
-              <div style={S.card}>
-                <div style={S.ct}>Registrar sintomas</div>
-                <label style={S.lbl}>Fecha</label>
-                <input type="date" value={sF.date} onChange={e=>setSF(p=>({...p,date:e.target.value}))} style={S.inp}/>
-                <label style={S.lbl}>Sintomas</label>
-                <div style={S.ckg}>
-                  {EFECTOS.map(ef=>(
-                    <div key={ef} style={S.cki(sF.effects.includes(ef))} onClick={()=>togEf(ef)}>
-                      <span>{sF.effects.includes(ef)?"v":"o"}</span><span style={{fontSize:"11px"}}>{ef}</span>
-                    </div>
-                  ))}
-                </div>
-                <label style={S.lbl}>Intensidad</label>
-                <div style={{display:"flex",gap:"8px",marginBottom:"10px"}}>
-                  {[1,2,3].map(s=>(
-                    <button key={s} onClick={()=>setSF(p=>({...p,severity:s}))} style={{flex:1,padding:"9px",borderRadius:"8px",cursor:"pointer",background:sF.severity===s?SEV_C[s]+"20":"rgba(255,255,255,0.03)",border:"1px solid "+(sF.severity===s?SEV_C[s]:"rgba(100,200,255,0.1)"),color:sF.severity===s?SEV_C[s]:"#4a6680",fontSize:"12px",fontFamily:"Georgia,serif"}}>
-                      {SEV_L[s]}
-                    </button>
-                  ))}
-                </div>
-                <label style={S.lbl}>Notas (opcional)</label>
-                <input type="text" value={sF.notes} placeholder="Observaciones..." onChange={e=>setSF(p=>({...p,notes:e.target.value}))} style={S.inp}/>
-                <button style={{...S.btn,opacity:sF.effects.length===0?0.4:1}} onClick={addSE}>+ Registrar sintomas</button>
-              </div>
-              <div style={S.card}>
-                <div style={S.ct}>Historial ({data.sideEffects.length})</div>
-                {data.sideEffects.length===0&&<div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aun</div>}
-                {[...data.sideEffects].reverse().map(se=>(
-                  <div key={se.id} style={{...S.row,flexDirection:"column",alignItems:"flex-start"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",width:"100%",marginBottom:"6px"}}>
-                      <div style={{fontSize:"13px",color:"#e8f4f8"}}>{fmtDate(se.date)}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                        <span style={S.tag(SEV_C[se.severity])}>{SEV_L[se.severity]}</span>
-                        <button style={S.bdel} onClick={()=>del("sideEffects",se.id)}>X</button>
-                      </div>
-                    </div>
-                    <div>{se.effects.map(ef=><span key={ef} style={S.pill("#94a3b8")}>{ef}</span>)}</div>
-                    {se.notes&&<div style={{fontSize:"11px",color:"#4a6680",marginTop:"4px"}}>{se.notes}</div>}
-                  </div>
-                ))}
-              </div>
-            </>}
-
-          </div>
-          {toast&&<div style={S.toast}>&#10003; {toast}</div>}
+  // IMC
+  if(imcVal&&imcInfo){
+    const kgObj=lastW&&state.height?+(lastW-ideal(state.height)).toFixed(1):null;
+    const pct=Math.min(Math.max((imcVal-10)/45*100,1),99);
+    const segs=[['#60a5fa',0,18.5],['#34d399',18.5,25],['#fbbf24',25,30],['#f97316',30,35],['#f87171',35,40],['#dc2626',40,55]];
+    let segHtml=segs.map(([c,f,t])=>`<div class="imc-seg" style="left:${((f-10)/45*100).toFixed(1)}%;width:${((t-f)/45*100).toFixed(1)}%;background:${c}"></div>`).join('');
+    h+=`<div class="imc-card" style="background:${imcInfo.c}18;border:1px solid ${imcInfo.c}35">
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:10px">Indice de masa corporal</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:38px;font-weight:bold;color:${imcInfo.c};line-height:1">${imcVal}</div>
+          <div style="font-size:13px;color:${imcInfo.c};margin-top:4px">${imcInfo.l}</div>
+          ${imcStart?`<div style="font-size:11px;color:#4a6680;margin-top:3px">inicio ${imcStart} &middot; &Delta; ${+(imcVal-imcStart).toFixed(1)}</div>`:''}
         </div>
-      );
-    }
+        <div style="text-align:right;font-size:12px;color:#4a6680">
+          <div>Talla: ${state.height} cm</div>
+          <div style="margin:3px 0">Peso: ${lastW} kg</div>
+          ${kgObj!==null?`<div style="color:${kgObj<=5?'#34d399':'#fbbf24'}">Objetivo: -${kgObj} kg</div>`:''}
+        </div>
+      </div>
+      <div class="imc-bar">${segHtml}<div class="imc-dot" style="left:${pct}%;background:${imcInfo.c}"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        ${['18.5','25','30','35','40'].map(v=>`<span style="font-size:9px;color:#334155">${v}</span>`).join('')}
+      </div>
+    </div>`;
+  }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-  </script>
+  // Chart
+  if(chartData.length>=2){
+    h+=`<div class="card"><div class="card-title">Evolucion del peso</div>${svgChart(chartData,state.startWeight)}</div>`;
+  }
+
+  // Dose ladder
+  const lastDoseIdx=lastI?DOSIS.indexOf(lastI.dose):-1;
+  let ladder='';
+  DOSIS.forEach((d,i)=>{
+    const active=i===lastDoseIdx, past=i<lastDoseIdx;
+    const n=state.injections.filter(x=>x.dose===d).length;
+    const col=DCOL[d];
+    ladder+=`<div class="dose-row" style="background:${active?col+'18':'transparent'};border:1px solid ${active?col+'50':'transparent'}">
+      <div class="dose-dot" style="background:${past||active?col:'#1e293b'};border:2px solid ${col}"></div>
+      <div style="flex:1;font-size:13px;color:${active?'#e8f4f8':past?'#7dd3fc':'#334155'}">${d}</div>
+      <div style="font-size:11px;color:#4a6680">${n?n+' toma'+(n>1?'s':''):''}${active?` <span style="color:${col}">actual</span>`:''}</div>
+    </div>`;
+  });
+  h+=`<div class="card"><div class="card-title">Protocolo de escalada</div>${ladder}</div>`;
+  return h;
+}
+
+// ── Render Tomas ──
+function renderTomas(){
+  let rows=state.injections.length?[...state.injections].reverse().map(inj=>`
+    <div class="row-item">
+      <div>
+        <div style="font-size:13px;color:#e8f4f8;margin-bottom:2px">${fmt(inj.date)}</div>
+        ${inj.notes?`<div style="font-size:11px;color:#4a6680">${inj.notes}</div>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="tag" style="background:${DCOL[inj.dose]}22;border:1px solid ${DCOL[inj.dose]}55;color:${DCOL[inj.dose]}">${inj.dose}</span>
+        <button class="btn-del" onclick="delItem('injections',${inj.id})">&#x2715;</button>
+      </div>
+    </div>`).join(''):'<div class="empty">Sin registros aun</div>';
+
+  return `<div class="card">
+    <div class="card-title">Registrar toma</div>
+    <label>Fecha</label>
+    <input type="date" id="iDate" value="${forms.injDate}"/>
+    <label>Dosis</label>
+    <select id="iDose">${DOSIS.map(d=>`<option value="${d}"${d===forms.dose?' selected':''}>${d}</option>`).join('')}</select>
+    <label>Notas (opcional)</label>
+    <input type="text" id="iNotes" value="${forms.injNotes}" placeholder="Zona, observaciones..."/>
+    <button class="btn-primary" onclick="addInj()">+ Registrar toma</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Historial (${state.injections.length})</div>
+    ${rows}
+  </div>`;
+}
+
+// ── Render Peso ──
+function renderPeso(){
+  const {sw,lastW,wLoss,chartData}=getStats();
+  let rows=sw.length?[...sw].reverse().map((w,i,arr)=>{
+    const prev=arr[i+1];
+    const d=prev?+(w.weight-prev.weight).toFixed(1):null;
+    const wi=imc(w.weight,state.height);
+    const wcat=wi?imcCat(wi):null;
+    return `<div class="row-item">
+      <div>
+        <div style="font-size:13px;color:#e8f4f8;margin-bottom:2px">${fmt(w.date)}</div>
+        ${d!==null?`<div style="font-size:11px;color:${d<0?'#34d399':'#f87171'}">${d>0?'+':''}${d} kg</div>`:''}
+        ${wcat?`<div style="font-size:11px;color:${wcat.c}">IMC ${wi} &middot; ${wcat.l}</div>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px;color:#7dd3fc;font-weight:bold">${w.weight} kg</span>
+        <button class="btn-del" onclick="delItem('weights',${w.id})">&#x2715;</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty">Sin registros aun</div>';
+
+  let chartHtml='';
+  if(chartData.length>=2){
+    const wc=wLoss!==null&&wLoss<0?'#34d399':'#f87171';
+    const pct=wLoss!==null&&state.startWeight?((wLoss/state.startWeight)*100).toFixed(1):0;
+    chartHtml=`<div class="card">
+      <div class="card-title">Curva de peso</div>
+      ${wLoss!==null?`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:#4a6680">
+        <span>Inicio: <span style="color:#e8f4f8">${state.startWeight} kg</span></span>
+        <span>Actual: <span style="color:#e8f4f8">${lastW} kg</span></span>
+        <span style="color:${wc};font-weight:bold">${wLoss>0?'+':''}${wLoss} kg (${pct}%)</span>
+      </div>`:''}
+      ${svgChart(chartData,state.startWeight)}
+    </div>`;
+  }
+
+  return `<div class="card">
+    <div class="card-title">Registrar peso</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label>Fecha</label><input type="date" id="wDate" value="${forms.wDate}"/></div>
+      <div><label>Talla (cm)</label><input type="number" id="wHeight" value="${state.height||''}" placeholder="185" step="1" min="100" max="250" onchange="updateHeight(this.value)"/></div>
+    </div>
+    <label>Peso (kg)</label>
+    <input type="number" id="wKg" value="${forms.wKg}" placeholder="ej: 92.5" step="0.1" min="30" max="300"/>
+    <button class="btn-primary" onclick="addWeight()">+ Registrar peso</button>
+  </div>
+  ${chartHtml}
+  <div class="card">
+    <div class="card-title">Historial (${state.weights.length})</div>
+    ${rows}
+  </div>`;
+}
+
+// ── Render Sintomas ──
+function renderSintomas(){
+  const checks=EFX.map(ef=>`<div class="check-item${forms.seEfx.includes(ef)?' checked':''}" onclick="togEfx('${ef}')">${forms.seEfx.includes(ef)?'&#10003;':'&#9675;'} ${ef}</div>`).join('');
+  const sevBtns=[1,2,3].map(s=>`<button class="btn-sev${forms.seSev===s?' active-'+s:''}" onclick="setSev(${s})">${SL[s]}</button>`).join('');
+
+  let rows=state.sideEffects.length?[...state.sideEffects].reverse().map(se=>`
+    <div class="row-item row-item-col">
+      <div style="display:flex;justify-content:space-between;width:100%;margin-bottom:6px">
+        <div style="font-size:13px;color:#e8f4f8">${fmt(se.date)}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag" style="background:${SC[se.severity]}22;border:1px solid ${SC[se.severity]}55;color:${SC[se.severity]}">${SL[se.severity]}</span>
+          <button class="btn-del" onclick="delItem('sideEffects',${se.id})">&#x2715;</button>
+        </div>
+      </div>
+      <div>${se.effects.map(ef=>`<span class="pill" style="background:#94a3b822;border:1px solid #94a3b844;color:#94a3b8">${ef}</span>`).join('')}</div>
+      ${se.notes?`<div style="font-size:11px;color:#4a6680;margin-top:4px">${se.notes}</div>`:''}
+    </div>`).join(''):'<div class="empty">Sin registros aun</div>';
+
+  return `<div class="card">
+    <div class="card-title">Registrar sintomas</div>
+    <label>Fecha</label>
+    <input type="date" id="sDate" value="${forms.seDate}"/>
+    <label>Sintomas</label>
+    <div class="check-grid">${checks}</div>
+    <label>Intensidad</label>
+    <div class="sev-row">${sevBtns}</div>
+    <label>Notas (opcional)</label>
+    <input type="text" id="sNotes" value="${forms.seNotes}" placeholder="Observaciones..."/>
+    <button class="btn-primary" style="opacity:${forms.seEfx.length?1:.4}" onclick="addSE()">+ Registrar sintomas</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Historial (${state.sideEffects.length})</div>
+    ${rows}
+  </div>`;
+}
+
+// ── Actions ──
+function addInj(){
+  const date=document.getElementById('iDate')?.value;
+  const dose=document.getElementById('iDose')?.value;
+  const notes=document.getElementById('iNotes')?.value||'';
+  if(!date||!dose) return;
+  state.injections.push({id:Date.now(),date,dose,notes});
+  state.injections.sort((a,b)=>a.date.localeCompare(b.date));
+  if(!state.startDate) state.startDate=date;
+  forms.injNotes=''; forms.dose=dose; forms.injDate=today();
+  save(); render();
+}
+
+function addWeight(){
+  const date=document.getElementById('wDate')?.value;
+  const kg=parseFloat(document.getElementById('wKg')?.value);
+  if(!date||isNaN(kg)||kg<30||kg>300) return;
+  state.weights=state.weights.filter(x=>x.date!==date);
+  state.weights.push({id:Date.now(),date,weight:kg});
+  state.weights.sort((a,b)=>a.date.localeCompare(b.date));
+  if(state.startWeight===null) state.startWeight=kg;
+  forms.wKg=''; forms.wDate=today();
+  save(); render();
+}
+
+function updateHeight(v){
+  const h=parseFloat(v);
+  if(h>=100&&h<=250){ state.height=h; save(); }
+}
+
+function addSE(){
+  const date=document.getElementById('sDate')?.value;
+  const notes=document.getElementById('sNotes')?.value||'';
+  if(!date||!forms.seEfx.length) return;
+  state.sideEffects.push({id:Date.now(),date,effects:[...forms.seEfx],severity:forms.seSev,notes});
+  state.sideEffects.sort((a,b)=>a.date.localeCompare(b.date));
+  forms.seEfx=[]; forms.seSev=1; forms.seNotes=''; forms.seDate=today();
+  save(); render();
+}
+
+function delItem(type,id){
+  state[type]=state[type].filter(x=>x.id!==id);
+  save(); render();
+}
+
+function togEfx(ef){
+  if(forms.seEfx.includes(ef)) forms.seEfx=forms.seEfx.filter(e=>e!==ef);
+  else forms.seEfx.push(ef);
+  render();
+}
+
+function setSev(s){ forms.seSev=s; render(); }
+
+// ── Main render ──
+function render(){
+  const el=document.getElementById('content');
+  switch(activeTab){
+    case 'dashboard': el.innerHTML=renderDashboard(); break;
+    case 'tomas':     el.innerHTML=renderTomas();     break;
+    case 'peso':      el.innerHTML=renderPeso();      break;
+    case 'sintomas':  el.innerHTML=renderSintomas();  break;
+  }
+}
+
+render();
+</script>
 </body>
 </html>
