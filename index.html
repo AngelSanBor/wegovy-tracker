@@ -12,18 +12,11 @@
   <link rel="apple-touch-icon" href="icon.png" />
   <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { height: 100%; }
-    body {
-      height: 100%;
-      background: #0a0e1a;
-      -webkit-tap-highlight-color: transparent;
-      overscroll-behavior: none;
-    }
-    #root { height: 100%; }
+    html, body, #root { height: 100%; }
+    body { background: #0a0e1a; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
     input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -34,233 +27,217 @@
 </head>
 <body>
   <div id="root"></div>
-
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
     }
   </script>
-
-  <script type="text/babel" data-presets="react">
+  <script type="text/babel">
     const { useState, useEffect, useCallback } = React;
-    const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } = Recharts;
 
-    /* ── Constants ── */
-    const STORAGE_KEY   = "wegovy:tracker-v2";
+    const STORAGE_KEY   = "wegovy:tracker-v3";
     const DOSIS_OPTIONS = ["0.25 mg","0.5 mg","1.0 mg","1.7 mg","2.4 mg"];
     const DOSIS_COLORS  = {"0.25 mg":"#60a5fa","0.5 mg":"#34d399","1.0 mg":"#fbbf24","1.7 mg":"#f97316","2.4 mg":"#a78bfa"};
-    const EFECTOS_LISTA = ["Náuseas","Vómitos","Diarrea","Estreñimiento","Dolor abdominal","Fatiga","Mareos","Cefalea","Reflujo","Pérdida de apetito","Otros"];
-    const SEV_LABELS    = {1:"Leve",2:"Moderado",3:"Severo"};
-    const SEV_COLORS    = {1:"#34d399",2:"#fbbf24",3:"#f87171"};
-    const DEFAULT_DATA  = { injections:[], weights:[], sideEffects:[], startDate:null, startWeight:109, height:185 };
+    const EFECTOS       = ["Nauseas","Vomitos","Diarrea","Estrenimiento","Dolor abdominal","Fatiga","Mareos","Cefalea","Reflujo","Perdida de apetito","Otros"];
+    const SEV_L         = {1:"Leve",2:"Moderado",3:"Severo"};
+    const SEV_C         = {1:"#34d399",2:"#fbbf24",3:"#f87171"};
+    const DEFAULT       = { injections:[], weights:[], sideEffects:[], startDate:null, startWeight:109, height:185 };
 
-    /* ── Helpers ── */
     const todayStr  = () => new Date().toISOString().split("T")[0];
-    const fmtDate   = d => { if (!d) return ""; const [y,m,day]=d.split("-"); return `${day}/${m}/${y}`; };
+    const fmtDate   = d => { if(!d)return""; const[y,m,day]=d.split("-"); return day+"/"+m+"/"+y; };
     const addDays   = (ds,n) => { const d=new Date(ds); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; };
     const daysDiff  = (a,b) => Math.round((new Date(b)-new Date(a))/86400000);
-    const calcIMC   = (w,h) => (!w||!h) ? null : w/Math.pow(h/100,2);
-    const pesoIdeal = h => h - 100 - (h-150)/4;
-    const imcCat    = imc => {
-      if (imc<18.5) return {label:"Bajo peso",    color:"#60a5fa"};
-      if (imc<25)   return {label:"Normopeso",     color:"#34d399"};
-      if (imc<30)   return {label:"Sobrepeso",     color:"#fbbf24"};
-      if (imc<35)   return {label:"Obesidad I",    color:"#f97316"};
-      if (imc<40)   return {label:"Obesidad II",   color:"#f87171"};
-      return               {label:"Obesidad mórbida",color:"#dc2626"};
+    const calcIMC   = (w,h) => (!w||!h)?null:w/Math.pow(h/100,2);
+    const pesoIdeal = h => h-100-(h-150)/4;
+    const imcCat    = v => {
+      if(v<18.5) return {label:"Bajo peso",    color:"#60a5fa"};
+      if(v<25)   return {label:"Normopeso",    color:"#34d399"};
+      if(v<30)   return {label:"Sobrepeso",    color:"#fbbf24"};
+      if(v<35)   return {label:"Obesidad I",   color:"#f97316"};
+      if(v<40)   return {label:"Obesidad II",  color:"#f87171"};
+      return           {label:"Ob. morbida",   color:"#dc2626"};
     };
+    const loadData = () => { try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null;}catch(e){return null;} };
+    const saveLS   = d  => { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(e){} };
 
-    const loadData = () => { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):null; } catch(e){return null;} };
-    const saveLS   = d  => { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(d)); return true; } catch(e){return false;} };
-
-    /* ── Styles ── */
-    const S = {
-      app:       { background:"linear-gradient(135deg,#0a0e1a 0%,#0f1829 50%,#0a1520 100%)", minHeight:"100vh", fontFamily:"'Georgia','Times New Roman',serif", color:"#e8f4f8" },
-      header:    { background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(100,200,255,0.1)", padding:"18px 20px 14px", textAlign:"center", paddingTop:"calc(18px + env(safe-area-inset-top))" },
-      logo:      { fontSize:"22px", fontWeight:"bold", letterSpacing:"2px", color:"#7dd3fc", margin:0, textTransform:"uppercase" },
-      sub:       { fontSize:"11px", color:"#64748b", margin:"4px 0 0", letterSpacing:"3px", textTransform:"uppercase" },
-      tabs:      { display:"flex", borderBottom:"1px solid rgba(100,200,255,0.1)", background:"rgba(0,0,0,0.2)", overflow:"hidden" },
-      tab:       a => ({ flex:1, padding:"12px 4px", background:a?"rgba(125,211,252,0.1)":"transparent", border:"none", borderBottom:a?"2px solid #7dd3fc":"2px solid transparent", color:a?"#7dd3fc":"#4a6680", cursor:"pointer", fontSize:"11px", letterSpacing:"1px", textTransform:"uppercase", fontFamily:"Georgia,serif" }),
-      content:   { padding:"16px", maxWidth:"600px", margin:"0 auto", paddingBottom:"calc(16px + env(safe-area-inset-bottom))" },
-      card:      { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(100,200,255,0.1)", borderRadius:"12px", padding:"16px", marginBottom:"14px" },
-      cardTitle: { fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:"#7dd3fc", marginBottom:"14px" },
-      grid2:     { display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"14px" },
-      statCard:  { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(100,200,255,0.08)", borderRadius:"10px", padding:"14px 12px", textAlign:"center" },
-      statVal:   { fontSize:"28px", fontWeight:"bold", color:"#7dd3fc", lineHeight:1 },
-      statLbl:   { fontSize:"10px", color:"#4a6680", letterSpacing:"1.5px", textTransform:"uppercase", marginTop:"6px" },
-      input:     { width:"100%", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(100,200,255,0.15)", borderRadius:"8px", padding:"10px 12px", color:"#e8f4f8", fontSize:"16px", fontFamily:"Georgia,serif", outline:"none", boxSizing:"border-box", marginBottom:"10px" },
-      select:    { width:"100%", background:"#0f1829", border:"1px solid rgba(100,200,255,0.15)", borderRadius:"8px", padding:"10px 12px", color:"#e8f4f8", fontSize:"16px", fontFamily:"Georgia,serif", outline:"none", boxSizing:"border-box", marginBottom:"10px" },
-      label:     { fontSize:"11px", color:"#64748b", letterSpacing:"1px", textTransform:"uppercase", display:"block", marginBottom:"5px" },
-      btn:       { background:"linear-gradient(135deg,#1e4a7a,#0f3460)", border:"1px solid rgba(125,211,252,0.3)", borderRadius:"8px", color:"#7dd3fc", padding:"11px 20px", cursor:"pointer", fontSize:"12px", letterSpacing:"1.5px", textTransform:"uppercase", width:"100%", fontFamily:"Georgia,serif" },
-      btnDel:    { background:"transparent", border:"1px solid rgba(248,113,113,0.3)", borderRadius:"6px", color:"#f87171", padding:"4px 10px", cursor:"pointer", fontSize:"11px", fontFamily:"Georgia,serif" },
-      row:       { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 12px", background:"rgba(255,255,255,0.03)", borderRadius:"8px", marginBottom:"6px", border:"1px solid rgba(100,200,255,0.06)" },
-      tag:       c => ({ background:`${c}22`, border:`1px solid ${c}55`, borderRadius:"20px", padding:"2px 10px", fontSize:"12px", color:c }),
-      pill:      c => ({ display:"inline-block", background:`${c}22`, border:`1px solid ${c}44`, borderRadius:"12px", padding:"3px 10px", fontSize:"11px", color:c, marginRight:"5px", marginBottom:"4px" }),
-      toast:     { position:"fixed", bottom:"24px", left:"50%", transform:"translateX(-50%)", background:"#14532d", border:"1px solid #22c55e", borderRadius:"8px", padding:"10px 20px", color:"#86efac", fontSize:"13px", zIndex:1000, whiteSpace:"nowrap" },
-      checkGrid: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px", marginBottom:"10px" },
-      checkItem: ch => ({ background:ch?"rgba(125,211,252,0.12)":"rgba(255,255,255,0.03)", border:`1px solid ${ch?"rgba(125,211,252,0.4)":"rgba(100,200,255,0.1)"}`, borderRadius:"8px", padding:"8px 10px", cursor:"pointer", fontSize:"12px", color:ch?"#7dd3fc":"#4a6680", display:"flex", alignItems:"center", gap:"6px", userSelect:"none" }),
-    };
-
-    /* ── Custom tooltip ── */
-    function ChartTip({ active, payload, label }) {
-      if (!active || !payload?.length) return null;
+    function LineChart({ data, startWeight }) {
+      if (!data || data.length < 2) return null;
+      const W=300, H=150, PL=36, PR=8, PT=8, PB=26;
+      const iW=W-PL-PR, iH=H-PT-PB;
+      const vals=data.map(d=>d.peso);
+      const minV=Math.floor(Math.min(...vals))-1;
+      const maxV=Math.ceil(Math.max(...vals))+1;
+      const xS=i=>PL+(i/(data.length-1))*iW;
+      const yS=v=>PT+(1-(v-minV)/(maxV-minV))*iH;
+      const pts=data.map((d,i)=>xS(i).toFixed(1)+","+yS(d.peso).toFixed(1)).join(" ");
+      const ticks=[minV,Math.round((minV+maxV)/2),maxV];
+      const xlabs=data.length<=5?data.map((_,i)=>i):[0,Math.floor((data.length-1)/2),data.length-1];
       return (
-        <div style={{background:"#0f1829",border:"1px solid rgba(125,211,252,0.3)",borderRadius:"8px",padding:"10px 14px"}}>
-          <div style={{fontSize:"11px",color:"#64748b",marginBottom:"4px"}}>{label}</div>
-          <div style={{fontSize:"18px",color:"#7dd3fc",fontWeight:"bold"}}>{payload[0].value} kg</div>
-        </div>
+        <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",display:"block",overflow:"visible"}}>
+          {ticks.map(t=>(
+            <line key={t} x1={PL} y1={yS(t).toFixed(1)} x2={W-PR} y2={yS(t).toFixed(1)} stroke="rgba(100,200,255,0.08)" strokeDasharray="3 3"/>
+          ))}
+          {startWeight&&startWeight>=minV&&startWeight<=maxV&&(
+            <line x1={PL} y1={yS(startWeight).toFixed(1)} x2={W-PR} y2={yS(startWeight).toFixed(1)} stroke="#f87171" strokeDasharray="5 3" strokeOpacity="0.4"/>
+          )}
+          <polyline points={pts} fill="none" stroke="#7dd3fc" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+          {data.map((d,i)=>(
+            <circle key={i} cx={xS(i).toFixed(1)} cy={yS(d.peso).toFixed(1)} r="4" fill="#7dd3fc"/>
+          ))}
+          {ticks.map(t=>(
+            <text key={t} x={PL-4} y={(yS(t)+3.5).toFixed(1)} textAnchor="end" fontSize="9" fill="#4a6680">{t}</text>
+          ))}
+          {xlabs.map(i=>(
+            <text key={i} x={xS(i).toFixed(1)} y={H-4} textAnchor="middle" fontSize="9" fill="#4a6680">{data[i].fecha}</text>
+          ))}
+        </svg>
       );
     }
 
-    /* ── Main App ── */
+    const S = {
+      app:   {background:"linear-gradient(135deg,#0a0e1a 0%,#0f1829 50%,#0a1520 100%)",minHeight:"100vh",fontFamily:"Georgia,'Times New Roman',serif",color:"#e8f4f8"},
+      hdr:   {background:"rgba(255,255,255,0.03)",borderBottom:"1px solid rgba(100,200,255,0.1)",padding:"18px 20px 14px",textAlign:"center",paddingTop:"calc(18px + env(safe-area-inset-top))"},
+      logo:  {fontSize:"22px",fontWeight:"bold",letterSpacing:"2px",color:"#7dd3fc",margin:0,textTransform:"uppercase"},
+      sub:   {fontSize:"11px",color:"#64748b",margin:"4px 0 0",letterSpacing:"3px",textTransform:"uppercase"},
+      tabs:  {display:"flex",borderBottom:"1px solid rgba(100,200,255,0.1)",background:"rgba(0,0,0,0.2)"},
+      tab:   a=>({flex:1,padding:"10px 4px",background:a?"rgba(125,211,252,0.1)":"transparent",border:"none",borderBottom:a?"2px solid #7dd3fc":"2px solid transparent",color:a?"#7dd3fc":"#4a6680",cursor:"pointer",fontSize:"10px",letterSpacing:"1px",textTransform:"uppercase",fontFamily:"Georgia,serif",lineHeight:"1.4"}),
+      cnt:   {padding:"16px",maxWidth:"600px",margin:"0 auto",paddingBottom:"calc(20px + env(safe-area-inset-bottom))"},
+      card:  {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(100,200,255,0.1)",borderRadius:"12px",padding:"16px",marginBottom:"14px"},
+      ct:    {fontSize:"11px",letterSpacing:"2px",textTransform:"uppercase",color:"#7dd3fc",marginBottom:"14px"},
+      g2:    {display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"14px"},
+      sc:    {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(100,200,255,0.08)",borderRadius:"10px",padding:"14px 12px",textAlign:"center"},
+      sv:    {fontSize:"28px",fontWeight:"bold",color:"#7dd3fc",lineHeight:1},
+      sl:    {fontSize:"10px",color:"#4a6680",letterSpacing:"1.5px",textTransform:"uppercase",marginTop:"6px"},
+      inp:   {width:"100%",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(100,200,255,0.15)",borderRadius:"8px",padding:"10px 12px",color:"#e8f4f8",fontSize:"16px",fontFamily:"Georgia,serif",outline:"none",boxSizing:"border-box",marginBottom:"10px"},
+      sel:   {width:"100%",background:"#0f1829",border:"1px solid rgba(100,200,255,0.15)",borderRadius:"8px",padding:"10px 12px",color:"#e8f4f8",fontSize:"16px",fontFamily:"Georgia,serif",outline:"none",boxSizing:"border-box",marginBottom:"10px"},
+      lbl:   {fontSize:"11px",color:"#64748b",letterSpacing:"1px",textTransform:"uppercase",display:"block",marginBottom:"5px"},
+      btn:   {background:"linear-gradient(135deg,#1e4a7a,#0f3460)",border:"1px solid rgba(125,211,252,0.3)",borderRadius:"8px",color:"#7dd3fc",padding:"11px 20px",cursor:"pointer",fontSize:"12px",letterSpacing:"1.5px",textTransform:"uppercase",width:"100%",fontFamily:"Georgia,serif"},
+      bdel:  {background:"transparent",border:"1px solid rgba(248,113,113,0.3)",borderRadius:"6px",color:"#f87171",padding:"4px 10px",cursor:"pointer",fontSize:"11px",fontFamily:"Georgia,serif"},
+      row:   {display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"rgba(255,255,255,0.03)",borderRadius:"8px",marginBottom:"6px",border:"1px solid rgba(100,200,255,0.06)"},
+      tag:   c=>({background:c+"22",border:"1px solid "+c+"55",borderRadius:"20px",padding:"2px 10px",fontSize:"12px",color:c}),
+      pill:  c=>({display:"inline-block",background:c+"22",border:"1px solid "+c+"44",borderRadius:"12px",padding:"3px 10px",fontSize:"11px",color:c,marginRight:"5px",marginBottom:"4px"}),
+      toast: {position:"fixed",bottom:"24px",left:"50%",transform:"translateX(-50%)",background:"#14532d",border:"1px solid #22c55e",borderRadius:"8px",padding:"10px 20px",color:"#86efac",fontSize:"13px",zIndex:1000,whiteSpace:"nowrap"},
+      ckg:   {display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",marginBottom:"10px"},
+      cki:   c=>({background:c?"rgba(125,211,252,0.12)":"rgba(255,255,255,0.03)",border:"1px solid "+(c?"rgba(125,211,252,0.4)":"rgba(100,200,255,0.1)"),borderRadius:"8px",padding:"8px 10px",cursor:"pointer",fontSize:"12px",color:c?"#7dd3fc":"#4a6680",display:"flex",alignItems:"center",gap:"6px",userSelect:"none"}),
+    };
+
     function App() {
-      const [data,    setData]    = useState(DEFAULT_DATA);
-      const [tab,     setTab]     = useState("dashboard");
-      const [toast,   setToast]   = useState(null);
-      const [injForm, setInjForm] = useState({ date:todayStr(), dose:"0.25 mg", notes:"" });
-      const [wForm,   setWForm]   = useState({ date:todayStr(), weight:"" });
-      const [seForm,  setSeForm]  = useState({ date:todayStr(), effects:[], severity:1, notes:"" });
+      const [data,  setData]  = useState(DEFAULT);
+      const [tab,   setTab]   = useState("dashboard");
+      const [toast, setToast] = useState(null);
+      const [iF,    setIF]    = useState({date:todayStr(),dose:"0.25 mg",notes:""});
+      const [wF,    setWF]    = useState({date:todayStr(),weight:""});
+      const [sF,    setSF]    = useState({date:todayStr(),effects:[],severity:1,notes:""});
 
-      useEffect(() => { const s=loadData(); if(s) setData(s); }, []);
+      useEffect(()=>{ const s=loadData(); if(s) setData(s); },[]);
 
-      const showToast = msg => { setToast(msg); setTimeout(()=>setToast(null), 2000); };
+      const t2   = msg => { setToast(msg); setTimeout(()=>setToast(null),2000); };
+      const save = useCallback(nd => { setData(nd); saveLS(nd); t2("Guardado"); },[]);
 
-      const save = useCallback(nd => {
-        setData(nd);
-        saveLS(nd);
-        showToast("✓ Guardado");
-      }, []);
-
-      /* Actions */
       const addInj = () => {
-        if (!injForm.date || !injForm.dose) return;
-        const injs = [...data.injections, {id:Date.now(),...injForm}].sort((a,b)=>a.date.localeCompare(b.date));
-        save({...data, injections:injs, startDate:data.startDate||injForm.date});
-        setInjForm(p=>({...p, notes:"", date:todayStr()}));
+        if(!iF.date||!iF.dose) return;
+        const injs=[...data.injections,{id:Date.now(),...iF}].sort((a,b)=>a.date.localeCompare(b.date));
+        save({...data,injections:injs,startDate:data.startDate||iF.date});
+        setIF(p=>({...p,notes:"",date:todayStr()}));
       };
-
       const addW = () => {
-        const w = parseFloat(wForm.weight);
-        if (!wForm.date || isNaN(w) || w<30 || w>300) return;
-        const ws = [...data.weights.filter(x=>x.date!==wForm.date), {id:Date.now(), date:wForm.date, weight:w}].sort((a,b)=>a.date.localeCompare(b.date));
-        save({...data, weights:ws, startWeight:data.startWeight!==null?data.startWeight:w});
-        setWForm({date:todayStr(), weight:""});
+        const w=parseFloat(wF.weight);
+        if(!wF.date||isNaN(w)||w<30||w>300) return;
+        const ws=[...data.weights.filter(x=>x.date!==wF.date),{id:Date.now(),date:wF.date,weight:w}].sort((a,b)=>a.date.localeCompare(b.date));
+        save({...data,weights:ws,startWeight:data.startWeight!==null?data.startWeight:w});
+        setWF({date:todayStr(),weight:""});
       };
-
       const addSE = () => {
-        if (!seForm.date || seForm.effects.length===0) return;
-        const ses = [...data.sideEffects,{id:Date.now(),...seForm}].sort((a,b)=>a.date.localeCompare(b.date));
-        save({...data, sideEffects:ses});
-        setSeForm({date:todayStr(), effects:[], severity:1, notes:""});
+        if(!sF.date||sF.effects.length===0) return;
+        const ses=[...data.sideEffects,{id:Date.now(),...sF}].sort((a,b)=>a.date.localeCompare(b.date));
+        save({...data,sideEffects:ses});
+        setSF({date:todayStr(),effects:[],severity:1,notes:""});
       };
+      const del   = (t,id) => save({...data,[t]:data[t].filter(x=>x.id!==id)});
+      const togEf = ef    => setSF(p=>({...p,effects:p.effects.includes(ef)?p.effects.filter(e=>e!==ef):[...p.effects,ef]}));
 
-      const del = (type, id) => save({...data, [type]:data[type].filter(x=>x.id!==id)});
-      const toggleEf = ef => setSeForm(p=>({...p, effects:p.effects.includes(ef)?p.effects.filter(e=>e!==ef):[...p.effects,ef]}));
-
-      /* Stats */
-      const sw       = [...data.weights].sort((a,b)=>a.date.localeCompare(b.date));
-      const lastW    = sw.length>0 ? sw[sw.length-1].weight : null;
-      const wLoss    = lastW!==null && data.startWeight!==null ? lastW - data.startWeight : null;
-      const totalInj = data.injections.length;
-      const weeks    = data.startDate ? Math.max(0,Math.floor(daysDiff(data.startDate,todayStr())/7)) : 0;
-      const si       = [...data.injections].sort((a,b)=>a.date.localeCompare(b.date));
-      const lastInj  = si.length>0 ? si[si.length-1] : null;
-      const nextDate = lastInj ? addDays(lastInj.date,7) : null;
-      const daysNext = nextDate ? daysDiff(todayStr(),nextDate) : null;
-      const imc      = calcIMC(lastW, data.height);
-      const imcStart = calcIMC(data.startWeight, data.height);
-      const imcNow   = imc ? imcCat(imc) : null;
-      const ideal    = data.height ? pesoIdeal(data.height) : null;
-      const kgToIdeal= lastW && ideal ? lastW - ideal : null;
-
-      const chartData = sw.map(w=>({ fecha:w.date.slice(5).replace("-","/"), peso:w.weight }));
-      const yMin = chartData.length>0 ? Math.floor(Math.min(...chartData.map(d=>d.peso))-1) : undefined;
-      const yMax = chartData.length>0 ? Math.ceil(Math.max(...chartData.map(d=>d.peso))+1) : undefined;
+      const sw      = [...data.weights].sort((a,b)=>a.date.localeCompare(b.date));
+      const lastW   = sw.length>0?sw[sw.length-1].weight:null;
+      const wLoss   = lastW!==null&&data.startWeight!==null?lastW-data.startWeight:null;
+      const si      = [...data.injections].sort((a,b)=>a.date.localeCompare(b.date));
+      const lastInj = si.length>0?si[si.length-1]:null;
+      const nextD   = lastInj?addDays(lastInj.date,7):null;
+      const dNext   = nextD?daysDiff(todayStr(),nextD):null;
+      const weeks   = data.startDate?Math.max(0,Math.floor(daysDiff(data.startDate,todayStr())/7)):0;
+      const imc     = calcIMC(lastW,data.height);
+      const imcS    = calcIMC(data.startWeight,data.height);
+      const imcNow  = imc?imcCat(imc):null;
+      const ideal   = data.height?pesoIdeal(data.height):null;
+      const kgToId  = lastW&&ideal?lastW-ideal:null;
+      const chartD  = sw.map(w=>({fecha:w.date.slice(5).replace("-","/"),peso:w.weight}));
 
       return (
         <div style={S.app}>
-          {/* Header */}
-          <div style={S.header}>
-            <p style={S.logo}>⬡ Wegovy Tracker</p>
-            <p style={S.sub}>Control de tratamiento · Semaglutida 2,4 mg</p>
+          <div style={S.hdr}>
+            <p style={S.logo}>Wegovy Tracker</p>
+            <p style={S.sub}>Control de tratamiento · Semaglutida</p>
           </div>
 
-          {/* Tabs */}
           <div style={S.tabs}>
-            {[["dashboard","📊 Resumen"],["tomas","💉 Tomas"],["peso","⚖️ Peso"],["sintomas","🩺 Síntomas"]].map(([id,lbl])=>(
-              <button key={id} style={S.tab(tab===id)} onClick={()=>setTab(id)}>{lbl}</button>
+            {[["dashboard","📊","Resumen"],["tomas","💉","Tomas"],["peso","⚖️","Peso"],["sintomas","🩺","Sintomas"]].map(([id,ic,lbl])=>(
+              <button key={id} style={S.tab(tab===id)} onClick={()=>setTab(id)}>{ic}<br/>{lbl}</button>
             ))}
           </div>
 
-          <div style={S.content}>
+          <div style={S.cnt}>
 
-            {/* ── DASHBOARD ── */}
             {tab==="dashboard" && <>
-              {/* Next dose */}
-              {nextDate && (
-                <div style={{background:daysNext<=1?"rgba(248,113,113,0.1)":daysNext<=3?"rgba(251,191,36,0.1)":"rgba(52,211,153,0.08)",border:`1px solid ${daysNext<=1?"rgba(248,113,113,0.4)":daysNext<=3?"rgba(251,191,36,0.3)":"rgba(52,211,153,0.2)"}`,borderRadius:"10px",padding:"12px 16px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              {nextD ? (
+                <div style={{background:dNext<=1?"rgba(248,113,113,0.1)":dNext<=3?"rgba(251,191,36,0.1)":"rgba(52,211,153,0.08)",border:"1px solid "+(dNext<=1?"rgba(248,113,113,0.4)":dNext<=3?"rgba(251,191,36,0.3)":"rgba(52,211,153,0.2)"),borderRadius:"10px",padding:"12px 16px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
-                    <div style={{fontSize:"11px",color:"#64748b",letterSpacing:"1px",textTransform:"uppercase",marginBottom:"3px"}}>Próxima dosis</div>
-                    <div style={{fontSize:"15px",color:"#e8f4f8"}}>{fmtDate(nextDate)}</div>
+                    <div style={{fontSize:"11px",color:"#64748b",letterSpacing:"1px",textTransform:"uppercase",marginBottom:"3px"}}>Proxima dosis</div>
+                    <div style={{fontSize:"15px",color:"#e8f4f8"}}>{fmtDate(nextD)}</div>
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:"26px",fontWeight:"bold",lineHeight:1,color:daysNext<=1?"#f87171":daysNext<=3?"#fbbf24":"#34d399"}}>
-                      {daysNext===0?"HOY":daysNext<0?"VENCIDA":`${daysNext}d`}
-                    </div>
-                    {daysNext!==0 && <div style={{fontSize:"10px",color:"#4a6680"}}>para próxima</div>}
+                    <div style={{fontSize:"26px",fontWeight:"bold",lineHeight:1,color:dNext<=1?"#f87171":dNext<=3?"#fbbf24":"#34d399"}}>{dNext===0?"HOY":dNext<0?"VENCIDA":dNext+"d"}</div>
+                    {dNext!==0&&<div style={{fontSize:"10px",color:"#4a6680"}}>para inyeccion</div>}
                   </div>
                 </div>
-              )}
-              {!nextDate && (
+              ) : (
                 <div style={{...S.card,textAlign:"center",padding:"20px"}}>
                   <div style={{fontSize:"32px",marginBottom:"8px"}}>💉</div>
                   <div style={{fontSize:"13px",color:"#4a6680"}}>Registra tu primera toma para comenzar</div>
                 </div>
               )}
 
-              {/* Stats */}
-              <div style={S.grid2}>
-                <div style={S.statCard}><div style={S.statVal}>{weeks}</div><div style={S.statLbl}>Semanas</div></div>
-                <div style={S.statCard}><div style={S.statVal}>{totalInj}</div><div style={S.statLbl}>Tomas</div></div>
-                <div style={S.statCard}>
-                  <div style={{...S.statVal,fontSize:"22px",color:wLoss!==null&&wLoss<0?"#34d399":"#f87171"}}>
-                    {wLoss!==null?`${wLoss>0?"+":""}${wLoss.toFixed(1)} kg`:"—"}
+              <div style={S.g2}>
+                <div style={S.sc}><div style={S.sv}>{weeks}</div><div style={S.sl}>Semanas</div></div>
+                <div style={S.sc}><div style={S.sv}>{data.injections.length}</div><div style={S.sl}>Tomas</div></div>
+                <div style={S.sc}>
+                  <div style={{...S.sv,fontSize:"22px",color:wLoss!==null&&wLoss<0?"#34d399":"#f87171"}}>
+                    {wLoss!==null?(wLoss>0?"+":"")+wLoss.toFixed(1)+" kg":"—"}
                   </div>
-                  <div style={S.statLbl}>Variación</div>
+                  <div style={S.sl}>Variacion</div>
                 </div>
-                <div style={S.statCard}>
-                  <div style={{...S.statVal,fontSize:"17px"}}>{lastInj?lastInj.dose:"—"}</div>
-                  <div style={S.statLbl}>Última dosis</div>
-                </div>
+                <div style={S.sc}><div style={{...S.sv,fontSize:"17px"}}>{lastInj?lastInj.dose:"—"}</div><div style={S.sl}>Ultima dosis</div></div>
               </div>
 
-              {/* IMC */}
-              {imc && imcNow && (
-                <div style={{background:`${imcNow.color}10`,border:`1px solid ${imcNow.color}35`,borderRadius:"12px",padding:"14px 16px",marginBottom:"14px"}}>
-                  <div style={{fontSize:"11px",letterSpacing:"2px",textTransform:"uppercase",color:"#64748b",marginBottom:"10px"}}>Índice de masa corporal</div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              {imc&&imcNow&&(
+                <div style={{background:imcNow.color+"10",border:"1px solid "+imcNow.color+"35",borderRadius:"12px",padding:"14px 16px",marginBottom:"14px"}}>
+                  <div style={{fontSize:"11px",letterSpacing:"2px",textTransform:"uppercase",color:"#64748b",marginBottom:"10px"}}>Indice de masa corporal</div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div>
                       <div style={{fontSize:"38px",fontWeight:"bold",color:imcNow.color,lineHeight:1}}>{imc.toFixed(1)}</div>
                       <div style={{fontSize:"13px",color:imcNow.color,marginTop:"4px"}}>{imcNow.label}</div>
-                      {imcStart && imc!==imcStart && <div style={{fontSize:"11px",color:"#4a6680",marginTop:"3px"}}>inicio: {imcStart.toFixed(1)} · Δ {(imc-imcStart).toFixed(1)}</div>}
+                      {imcS&&<div style={{fontSize:"11px",color:"#4a6680",marginTop:"3px"}}>inicio {imcS.toFixed(1)} · D {(imc-imcS).toFixed(1)}</div>}
                     </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:"12px",color:"#4a6680",marginBottom:"4px"}}>Talla: {data.height} cm</div>
-                      <div style={{fontSize:"12px",color:"#4a6680",marginBottom:"4px"}}>Peso: {lastW} kg</div>
-                      {kgToIdeal!==null && <div style={{fontSize:"12px",color:kgToIdeal<=5?"#34d399":"#fbbf24"}}>Objetivo: −{kgToIdeal.toFixed(1)} kg</div>}
+                    <div style={{textAlign:"right",fontSize:"12px",color:"#4a6680"}}>
+                      <div>Talla: {data.height} cm</div>
+                      <div style={{margin:"3px 0"}}>Peso: {lastW} kg</div>
+                      {kgToId!==null&&<div style={{color:kgToId<=5?"#34d399":"#fbbf24"}}>Objetivo: -{kgToId.toFixed(1)} kg</div>}
                     </div>
                   </div>
-                  {/* IMC bar */}
                   <div style={{marginTop:"12px"}}>
-                    <div style={{position:"relative",height:"6px",background:"rgba(255,255,255,0.06)",borderRadius:"3px",overflow:"visible"}}>
-                      {[["#60a5fa",18.5],["#34d399",25],["#fbbf24",30],["#f97316",35],["#f87171",40],["#dc2626",55]].reduce((acc,seg,i,arr)=>{
-                        const prev = i===0?10:arr[i-1][1];
-                        const left=(prev-10)/45*100;
-                        const w=(seg[1]-prev)/45*100;
-                        acc.push(<div key={i} style={{position:"absolute",left:`${left}%`,width:`${Math.min(w,100-left)}%`,height:"100%",background:seg[0],opacity:0.5,borderRadius:i===0?"3px 0 0 3px":i===5?"0 3px 3px 0":0}}/>);
-                        return acc;
-                      },[])}
-                      <div style={{position:"absolute",left:`${Math.min(Math.max((imc-10)/45*100,1),99)}%`,top:"-3px",width:"12px",height:"12px",background:imcNow.color,borderRadius:"50%",border:"2px solid #0f1829",transform:"translateX(-50%)"}}/>
+                    <div style={{position:"relative",height:"6px",background:"rgba(255,255,255,0.06)",borderRadius:"3px",overflow:"hidden"}}>
+                      {[["#60a5fa",0,18.5],["#34d399",18.5,25],["#fbbf24",25,30],["#f97316",30,35],["#f87171",35,40],["#dc2626",40,55]].map(([c,from,to])=>(
+                        <div key={from} style={{position:"absolute",left:((from-10)/45*100)+"%",width:((to-from)/45*100)+"%",height:"100%",background:c,opacity:0.5}}/>
+                      ))}
+                      <div style={{position:"absolute",left:Math.min(Math.max((imc-10)/45*100,1),99)+"%",top:"-3px",width:"12px",height:"12px",background:imcNow.color,borderRadius:"50%",border:"2px solid #0f1829",transform:"translateX(-50%)"}}/>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
                       {["18.5","25","30","35","40"].map(v=><span key={v} style={{fontSize:"9px",color:"#334155"}}>{v}</span>)}
@@ -269,61 +246,46 @@
                 </div>
               )}
 
-              {/* Mini chart */}
-              {chartData.length>=2 && (
+              {chartD.length>=2&&(
                 <div style={S.card}>
-                  <div style={S.cardTitle}>⚖️ Evolución del peso</div>
-                  <ResponsiveContainer width="100%" height={150}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,200,255,0.06)"/>
-                      <XAxis dataKey="fecha" stroke="#334155" tick={{fontSize:10,fill:"#4a6680"}}/>
-                      <YAxis domain={[yMin,yMax]} stroke="#334155" tick={{fontSize:10,fill:"#4a6680"}}/>
-                      <Tooltip content={<ChartTip/>}/>
-                      <Line type="monotone" dataKey="peso" stroke="#7dd3fc" strokeWidth={2} dot={{fill:"#7dd3fc",r:4}} activeDot={{r:6}}/>
-                      {data.startWeight && <ReferenceLine y={data.startWeight} stroke="#f8717144" strokeDasharray="4 4"/>}
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <div style={S.ct}>Evolucion del peso</div>
+                  <LineChart data={chartD} startWeight={data.startWeight}/>
                 </div>
               )}
 
-              {/* Dose ladder */}
               <div style={S.card}>
-                <div style={S.cardTitle}>📈 Protocolo de escalada</div>
+                <div style={S.ct}>Protocolo de escalada</div>
                 {DOSIS_OPTIONS.map((d,i)=>{
-                  const isActive = lastInj?.dose===d;
-                  const isPast   = lastInj && DOSIS_OPTIONS.indexOf(lastInj.dose)>i;
-                  const n        = data.injections.filter(x=>x.dose===d).length;
-                  return (
-                    <div key={d} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 10px",borderRadius:"8px",marginBottom:"4px",background:isActive?`${DOSIS_COLORS[d]}15`:"transparent",border:`1px solid ${isActive?DOSIS_COLORS[d]+"40":"transparent"}`}}>
-                      <div style={{width:"8px",height:"8px",borderRadius:"50%",background:isPast||isActive?DOSIS_COLORS[d]:"#1e293b",border:`2px solid ${DOSIS_COLORS[d]}`}}/>
-                      <div style={{flex:1,fontSize:"13px",color:isActive?"#e8f4f8":isPast?"#7dd3fc":"#334155"}}>{d}</div>
-                      <div style={{fontSize:"11px",color:"#4a6680"}}>
-                        {n>0?`${n} toma${n>1?"s":""}`:""}
-                        {isActive&&<span style={{color:DOSIS_COLORS[d],marginLeft:"6px"}}>← actual</span>}
-                      </div>
+                  const active=lastInj&&lastInj.dose===d;
+                  const past=lastInj&&DOSIS_OPTIONS.indexOf(lastInj.dose)>i;
+                  const n=data.injections.filter(x=>x.dose===d).length;
+                  return(
+                    <div key={d} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 10px",borderRadius:"8px",marginBottom:"4px",background:active?DOSIS_COLORS[d]+"15":"transparent",border:"1px solid "+(active?DOSIS_COLORS[d]+"40":"transparent")}}>
+                      <div style={{width:"8px",height:"8px",borderRadius:"50%",background:past||active?DOSIS_COLORS[d]:"#1e293b",border:"2px solid "+DOSIS_COLORS[d]}}/>
+                      <div style={{flex:1,fontSize:"13px",color:active?"#e8f4f8":past?"#7dd3fc":"#334155"}}>{d}</div>
+                      <div style={{fontSize:"11px",color:"#4a6680"}}>{n>0?n+" toma"+(n>1?"s":""):""}{active&&<span style={{color:DOSIS_COLORS[d],marginLeft:"6px"}}> actual</span>}</div>
                     </div>
                   );
                 })}
               </div>
             </>}
 
-            {/* ── TOMAS ── */}
             {tab==="tomas" && <>
               <div style={S.card}>
-                <div style={S.cardTitle}>💉 Registrar toma</div>
-                <label style={S.label}>Fecha</label>
-                <input type="date" value={injForm.date} onChange={e=>setInjForm(p=>({...p,date:e.target.value}))} style={S.input}/>
-                <label style={S.label}>Dosis</label>
-                <select value={injForm.dose} onChange={e=>setInjForm(p=>({...p,dose:e.target.value}))} style={S.select}>
+                <div style={S.ct}>Registrar toma</div>
+                <label style={S.lbl}>Fecha</label>
+                <input type="date" value={iF.date} onChange={e=>setIF(p=>({...p,date:e.target.value}))} style={S.inp}/>
+                <label style={S.lbl}>Dosis</label>
+                <select value={iF.dose} onChange={e=>setIF(p=>({...p,dose:e.target.value}))} style={S.sel}>
                   {DOSIS_OPTIONS.map(d=><option key={d} value={d}>{d}</option>)}
                 </select>
-                <label style={S.label}>Notas (opcional)</label>
-                <input type="text" value={injForm.notes} placeholder="Zona, observaciones…" onChange={e=>setInjForm(p=>({...p,notes:e.target.value}))} style={S.input}/>
+                <label style={S.lbl}>Notas (opcional)</label>
+                <input type="text" value={iF.notes} placeholder="Zona, observaciones..." onChange={e=>setIF(p=>({...p,notes:e.target.value}))} style={S.inp}/>
                 <button style={S.btn} onClick={addInj}>+ Registrar toma</button>
               </div>
               <div style={S.card}>
-                <div style={S.cardTitle}>📋 Historial ({data.injections.length})</div>
-                {data.injections.length===0 && <div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aún</div>}
+                <div style={S.ct}>Historial ({data.injections.length})</div>
+                {data.injections.length===0&&<div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aun</div>}
                 {[...data.injections].reverse().map(inj=>(
                   <div key={inj.id} style={S.row}>
                     <div>
@@ -332,74 +294,61 @@
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                       <span style={S.tag(DOSIS_COLORS[inj.dose]||"#7dd3fc")}>{inj.dose}</span>
-                      <button style={S.btnDel} onClick={()=>del("injections",inj.id)}>✕</button>
+                      <button style={S.bdel} onClick={()=>del("injections",inj.id)}>X</button>
                     </div>
                   </div>
                 ))}
               </div>
             </>}
 
-            {/* ── PESO ── */}
             {tab==="peso" && <>
               <div style={S.card}>
-                <div style={S.cardTitle}>⚖️ Registrar peso</div>
+                <div style={S.ct}>Registrar peso</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
                   <div>
-                    <label style={S.label}>Fecha</label>
-                    <input type="date" value={wForm.date} onChange={e=>setWForm(p=>({...p,date:e.target.value}))} style={S.input}/>
+                    <label style={S.lbl}>Fecha</label>
+                    <input type="date" value={wF.date} onChange={e=>setWF(p=>({...p,date:e.target.value}))} style={S.inp}/>
                   </div>
                   <div>
-                    <label style={S.label}>Talla (cm)</label>
-                    <input type="number" step="1" min="100" max="250" value={data.height||""} placeholder="185"
-                      onChange={e=>save({...data,height:parseFloat(e.target.value)||null})} style={S.input}/>
+                    <label style={S.lbl}>Talla (cm)</label>
+                    <input type="number" step="1" min="100" max="250" value={data.height||""} placeholder="185" onChange={e=>save({...data,height:parseFloat(e.target.value)||null})} style={S.inp}/>
                   </div>
                 </div>
-                <label style={S.label}>Peso (kg)</label>
-                <input type="number" step="0.1" min="30" max="300" value={wForm.weight} placeholder="ej: 92.5" onChange={e=>setWForm(p=>({...p,weight:e.target.value}))} style={S.input}/>
+                <label style={S.lbl}>Peso (kg)</label>
+                <input type="number" step="0.1" min="30" max="300" value={wF.weight} placeholder="ej: 92.5" onChange={e=>setWF(p=>({...p,weight:e.target.value}))} style={S.inp}/>
                 <button style={S.btn} onClick={addW}>+ Registrar peso</button>
               </div>
-
-              {chartData.length>=2 && (
+              {chartD.length>=2&&(
                 <div style={S.card}>
-                  <div style={S.cardTitle}>📈 Curva de peso</div>
-                  {wLoss!==null && (
+                  <div style={S.ct}>Curva de peso</div>
+                  {wLoss!==null&&(
                     <div style={{display:"flex",gap:"16px",flexWrap:"wrap",marginBottom:"14px"}}>
-                      <div><span style={{fontSize:"11px",color:"#4a6680"}}>Inicio: </span><span style={{fontSize:"14px",color:"#e8f4f8"}}>{data.startWeight} kg</span></div>
-                      <div><span style={{fontSize:"11px",color:"#4a6680"}}>Actual: </span><span style={{fontSize:"14px",color:"#e8f4f8"}}>{lastW} kg</span></div>
-                      <div><span style={{fontSize:"11px",color:"#4a6680"}}>Δ: </span><span style={{fontSize:"14px",fontWeight:"bold",color:wLoss<0?"#34d399":"#f87171"}}>{wLoss>0?"+":""}{wLoss.toFixed(1)} kg ({((wLoss/data.startWeight)*100).toFixed(1)}%)</span></div>
+                      <span style={{fontSize:"12px",color:"#4a6680"}}>Inicio: <span style={{color:"#e8f4f8"}}>{data.startWeight} kg</span></span>
+                      <span style={{fontSize:"12px",color:"#4a6680"}}>Actual: <span style={{color:"#e8f4f8"}}>{lastW} kg</span></span>
+                      <span style={{fontSize:"12px",fontWeight:"bold",color:wLoss<0?"#34d399":"#f87171"}}>{wLoss>0?"+":""}{wLoss.toFixed(1)} kg ({((wLoss/data.startWeight)*100).toFixed(1)}%)</span>
                     </div>
                   )}
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,200,255,0.06)"/>
-                      <XAxis dataKey="fecha" stroke="#334155" tick={{fontSize:10,fill:"#4a6680"}}/>
-                      <YAxis domain={[yMin,yMax]} stroke="#334155" tick={{fontSize:10,fill:"#4a6680"}} unit=" kg"/>
-                      <Tooltip content={<ChartTip/>}/>
-                      <Line type="monotone" dataKey="peso" stroke="#7dd3fc" strokeWidth={2.5} dot={{fill:"#7dd3fc",r:5}} activeDot={{r:7}}/>
-                      {data.startWeight && <ReferenceLine y={data.startWeight} stroke="#f8717144" strokeDasharray="6 3"/>}
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LineChart data={chartD} startWeight={data.startWeight}/>
                 </div>
               )}
-
               <div style={S.card}>
-                <div style={S.cardTitle}>📋 Historial ({data.weights.length})</div>
-                {data.weights.length===0 && <div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aún</div>}
+                <div style={S.ct}>Historial ({data.weights.length})</div>
+                {data.weights.length===0&&<div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aun</div>}
                 {[...sw].reverse().map((w,i,arr)=>{
-                  const prev = arr[i+1];
-                  const diff = prev ? w.weight-prev.weight : null;
-                  const wi   = calcIMC(w.weight, data.height);
-                  const wcat = wi ? imcCat(wi) : null;
-                  return (
+                  const prev=arr[i+1];
+                  const diff=prev?w.weight-prev.weight:null;
+                  const wi=calcIMC(w.weight,data.height);
+                  const wcat=wi?imcCat(wi):null;
+                  return(
                     <div key={w.id} style={S.row}>
                       <div>
                         <div style={{fontSize:"13px",color:"#e8f4f8",marginBottom:"2px"}}>{fmtDate(w.date)}</div>
-                        {diff!==null && <div style={{fontSize:"11px",color:diff<0?"#34d399":"#f87171"}}>{diff>0?"+":""}{diff.toFixed(1)} kg vs anterior</div>}
-                        {wcat && <div style={{fontSize:"11px",color:wcat.color}}>IMC {wi.toFixed(1)} · {wcat.label}</div>}
+                        {diff!==null&&<div style={{fontSize:"11px",color:diff<0?"#34d399":"#f87171"}}>{diff>0?"+":""}{diff.toFixed(1)} kg</div>}
+                        {wcat&&<div style={{fontSize:"11px",color:wcat.color}}>IMC {wi.toFixed(1)} - {wcat.label}</div>}
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                         <span style={{fontSize:"18px",color:"#7dd3fc",fontWeight:"bold"}}>{w.weight} kg</span>
-                        <button style={S.btnDel} onClick={()=>del("weights",w.id)}>✕</button>
+                        <button style={S.bdel} onClick={()=>del("weights",w.id)}>X</button>
                       </div>
                     </div>
                   );
@@ -407,56 +356,52 @@
               </div>
             </>}
 
-            {/* ── SÍNTOMAS ── */}
             {tab==="sintomas" && <>
               <div style={S.card}>
-                <div style={S.cardTitle}>🩺 Registrar síntomas</div>
-                <label style={S.label}>Fecha</label>
-                <input type="date" value={seForm.date} onChange={e=>setSeForm(p=>({...p,date:e.target.value}))} style={S.input}/>
-                <label style={S.label}>Síntomas</label>
-                <div style={S.checkGrid}>
-                  {EFECTOS_LISTA.map(ef=>(
-                    <div key={ef} style={S.checkItem(seForm.effects.includes(ef))} onClick={()=>toggleEf(ef)}>
-                      <span>{seForm.effects.includes(ef)?"✓":"○"}</span><span>{ef}</span>
+                <div style={S.ct}>Registrar sintomas</div>
+                <label style={S.lbl}>Fecha</label>
+                <input type="date" value={sF.date} onChange={e=>setSF(p=>({...p,date:e.target.value}))} style={S.inp}/>
+                <label style={S.lbl}>Sintomas</label>
+                <div style={S.ckg}>
+                  {EFECTOS.map(ef=>(
+                    <div key={ef} style={S.cki(sF.effects.includes(ef))} onClick={()=>togEf(ef)}>
+                      <span>{sF.effects.includes(ef)?"v":"o"}</span><span style={{fontSize:"11px"}}>{ef}</span>
                     </div>
                   ))}
                 </div>
-                <label style={S.label}>Intensidad</label>
+                <label style={S.lbl}>Intensidad</label>
                 <div style={{display:"flex",gap:"8px",marginBottom:"10px"}}>
                   {[1,2,3].map(s=>(
-                    <button key={s} onClick={()=>setSeForm(p=>({...p,severity:s}))} style={{flex:1,padding:"9px",borderRadius:"8px",cursor:"pointer",background:seForm.severity===s?`${SEV_COLORS[s]}20`:"rgba(255,255,255,0.03)",border:`1px solid ${seForm.severity===s?SEV_COLORS[s]:"rgba(100,200,255,0.1)"}`,color:seForm.severity===s?SEV_COLORS[s]:"#4a6680",fontSize:"12px",fontFamily:"Georgia,serif"}}>
-                      {SEV_LABELS[s]}
+                    <button key={s} onClick={()=>setSF(p=>({...p,severity:s}))} style={{flex:1,padding:"9px",borderRadius:"8px",cursor:"pointer",background:sF.severity===s?SEV_C[s]+"20":"rgba(255,255,255,0.03)",border:"1px solid "+(sF.severity===s?SEV_C[s]:"rgba(100,200,255,0.1)"),color:sF.severity===s?SEV_C[s]:"#4a6680",fontSize:"12px",fontFamily:"Georgia,serif"}}>
+                      {SEV_L[s]}
                     </button>
                   ))}
                 </div>
-                <label style={S.label}>Notas (opcional)</label>
-                <input type="text" value={seForm.notes} placeholder="Observaciones…" onChange={e=>setSeForm(p=>({...p,notes:e.target.value}))} style={S.input}/>
-                <button style={{...S.btn,opacity:seForm.effects.length===0?0.4:1}} onClick={addSE}>+ Registrar síntomas</button>
+                <label style={S.lbl}>Notas (opcional)</label>
+                <input type="text" value={sF.notes} placeholder="Observaciones..." onChange={e=>setSF(p=>({...p,notes:e.target.value}))} style={S.inp}/>
+                <button style={{...S.btn,opacity:sF.effects.length===0?0.4:1}} onClick={addSE}>+ Registrar sintomas</button>
               </div>
-
               <div style={S.card}>
-                <div style={S.cardTitle}>📋 Historial ({data.sideEffects.length})</div>
-                {data.sideEffects.length===0 && <div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aún</div>}
+                <div style={S.ct}>Historial ({data.sideEffects.length})</div>
+                {data.sideEffects.length===0&&<div style={{textAlign:"center",color:"#334155",padding:"20px",fontSize:"13px"}}>Sin registros aun</div>}
                 {[...data.sideEffects].reverse().map(se=>(
                   <div key={se.id} style={{...S.row,flexDirection:"column",alignItems:"flex-start"}}>
                     <div style={{display:"flex",justifyContent:"space-between",width:"100%",marginBottom:"6px"}}>
                       <div style={{fontSize:"13px",color:"#e8f4f8"}}>{fmtDate(se.date)}</div>
                       <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                        <span style={S.tag(SEV_COLORS[se.severity])}>{SEV_LABELS[se.severity]}</span>
-                        <button style={S.btnDel} onClick={()=>del("sideEffects",se.id)}>✕</button>
+                        <span style={S.tag(SEV_C[se.severity])}>{SEV_L[se.severity]}</span>
+                        <button style={S.bdel} onClick={()=>del("sideEffects",se.id)}>X</button>
                       </div>
                     </div>
                     <div>{se.effects.map(ef=><span key={ef} style={S.pill("#94a3b8")}>{ef}</span>)}</div>
-                    {se.notes && <div style={{fontSize:"11px",color:"#4a6680",marginTop:"4px"}}>{se.notes}</div>}
+                    {se.notes&&<div style={{fontSize:"11px",color:"#4a6680",marginTop:"4px"}}>{se.notes}</div>}
                   </div>
                 ))}
               </div>
             </>}
 
           </div>
-
-          {/* Toast */}
-          {toast && <div style={S.toast}>{toast}</div>}
+          {toast&&<div style={S.toast}>&#10003; {toast}</div>}
         </div>
       );
     }
